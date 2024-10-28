@@ -78,6 +78,7 @@ local NotPooling, InCooldowns, PoisonedBleeds, EnergyRegenCombined, EnergyTimeTo
 ClipEnvenom, UpperLimitEnergy, AvoidTea, CDSoon
 
 local TrinketSyncSlot = 0
+local TrinketItem1, TrinketItem2
 local EffectiveCPSpend
 
 -- Equipment
