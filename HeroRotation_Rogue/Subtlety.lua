@@ -859,14 +859,6 @@ local function APL ()
       return ShouldReturn
     end
 
-    -- actions+=/eviscerate,if=combo_points>=1&!variable.snd_condition
-    if S.Eviscerate:IsReady() and ComboPoints >= 1 and not SnD_Condition() then
-      if Cast(S.Eviscerate, nil, nil, not Target:IsSpellInRange(S.Eviscerate)) then
-        return "Cast Eviscerate"
-      end
-      SetPoolingFinisher(S.Eviscerate)
-    end
-
     -- # Check CDs at first
     -- actions=call_action_list,name=cds
     ShouldReturn = CDs()
