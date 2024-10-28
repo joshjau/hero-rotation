@@ -164,7 +164,7 @@ HL.AddCoreOverride ("Player.SoulShardsP",
         return min(Shard + 2, 5)
       elseif Player:IsCasting(SpellDemo.ShadowBolt) or Player:IsCasting(SpellDemo.SoulStrike) then
         return min(Shard + 1, 5)
-      elseif Player:IsCasting(SpellDemo.HandofGuldan) or Player:IsCasting(SpellDemo.RuinationAbility) then
+      elseif Player:IsCasting(SpellDemo.HandofGuldan) then
         return max(Shard - 3, 0)
       elseif Player:IsCasting(SpellDemo.CallDreadstalkers) then
         return Shard - 2
