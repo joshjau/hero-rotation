@@ -209,7 +209,7 @@ DemoOldSpellIsReady = HL.AddCoreOverride ("Spell.IsReady",
       return BaseCheck and Player:SoulShardsP() >= 1 and not Player:IsCasting(self)
     elseif self == SpellDemo.CallDreadstalkers then
       return BaseCheck and (Player:SoulShardsP() >= 2 or Player:BuffUp(SpellDemo.DemonicCallingBuff)) and not Player:IsCasting(self)
-    elseif self == SpellDemo.SummonDemonicTyrant then
+    elseif self == SpellDemo.SummonDemonicTyrant or self == SpellDemo.RuinationAbility then
       return BaseCheck and not Player:IsCasting(self)
     elseif self == SpellDemo.HandofGuldan then
       return BaseCheck and Player:SoulShardsP() >= 1
