@@ -817,7 +817,7 @@ local function CDs ()
   -- |spell_targets.fan_of_knives>=4&debuff.shiv.remains>=6|fight_remains<=cooldown.thistle_tea.charges*6
   if S.ThistleTea:IsCastable() and not Player:BuffUp(S.ThistleTea) and (Target:DebuffUp(S.Kingsbane) or Target:DebuffRemains(S.ShivDebuff) >= 4) or MeleeEnemies10yCount >= 4
     and Target:DebuffRemains(S.Shiv) >= 6 or HL.BossFilteredFightRemains("<", S.ThistleTea:Charges() * 6) then
-    if HR.Cast(S.ThistleTea, Settings.CommonsOGCD.OffGCDasOffGCD.ThistleTea) then
+    if Cast(S.ThistleTea, Settings.CommonsOGCD.OffGCDasOffGCD.ThistleTea) then
       return "Cast Thistle Tea"
     end
   end
