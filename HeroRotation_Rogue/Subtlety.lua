@@ -344,7 +344,7 @@ local function Build (ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.ShurikenStorm
     else
-      if CastPooling(S.ShurikenStorm, nil, not Target:IsSpellInRange(S.ShurikenStorm)) then
+      if CastPooling(S.ShurikenStorm) then
         return "Cast ShurikenStorm"
       end
     end
@@ -359,7 +359,7 @@ local function Build (ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.ShurikenTornado
       else
-        if CastPooling(S.ShurikenTornado, nil, not Target:IsSpellInRange(S.ShurikenTornado)) then
+        if CastPooling(S.ShurikenTornado) then
           return "Cast ShurikenTornado"
         end
       end
