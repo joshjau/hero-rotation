@@ -1029,7 +1029,7 @@ local function Direct ()
   if S.FanofKnives:IsReady() then
     if HR.AoEON() and UseFiller and not PriorityRotation and (MeleeEnemies10yCount >= 3 - BoolToInt(S.MomentumOfDespair:IsAvailable() and S.ThrownPrecision:IsAvailable()))
       or Player:BuffUp(S.ClearTheWitnessesBuff) and not S.ViciousVenoms:IsAvailable() then
-      if CastPooling(S.FanofKnives) then
+      if Cast(S.FanofKnives) then
         return "Cast Fan of Knives"
       end
     end
@@ -1042,7 +1042,7 @@ local function Direct ()
     and UseFiller and MeleeEnemies10yCount >= 3 - BoolToInt(S.MomentumOfDespair:IsAvailable() and S.ThrownPrecision:IsAvailable()) then
     for _, CycleUnit in pairs(MeleeEnemies10y) do
       if not CycleUnit:DebuffUp(S.DeadlyPoisonDebuff, true) and (not PriorityRotation or CycleUnit:DebuffUp(S.Garrote) or CycleUnit:DebuffUp(S.Rupture)) then
-        if CastPooling(S.FanofKnives) then
+        if Cast(S.FanofKnives) then
           return "Cast Fan of Knives (DP Refresh)"
         end
       end

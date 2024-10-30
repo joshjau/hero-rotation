@@ -584,7 +584,8 @@ local function Items()
   if Settings.Commons.Enabled.Trinkets then
     -- actions.items=use_item,name=treacherous_transmitter,if=cooldown.flagellation.remains<=2|fight_remains<=15
     if I.TreacherousTransmitter:IsEquippedAndReady() then
-      if S.Flagellation:CooldownRemains() <= 2 or HL.BossFilteredFightRemains("<=", 15) then
+      if S.Flagellation:CooldownRemains() <= 2 or S.Flagellation:IsReady() or Player:BuffUp(S.FlagellationBuff) or Player:BuffUp(S.FlagellationPersistBuff)
+      or HL.BossFilteredFightRemains("<=", 15) then
         if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then
           return "Treacherous Transmitter"
         end
@@ -764,7 +765,7 @@ local function APL ()
 
   -- actions+=/variable,name=skip_rupture,value=buff.shadow_dance.up|!buff.slice_and_dice.up|buff.darkest_night.up|
   -- variable.targets>=8&!talent.replicating_shadows&talent.unseen_blade
-  SkipRupture = Player:BuffUp(S.ShadowDanceBuff) and Player:BuffDown(S.SliceandDice) and Player:BuffUp(S.DarkestNightBuff)
+  SkipRupture = Player:BuffUp(S.ShadowDanceBuff) or Player:BuffDown(S.SliceandDice) or Player:BuffUp(S.DarkestNightBuff)
     or MeleeEnemies10yCount >= 8 and not S.ReplicatingShadows:IsAvailable() and S.UnseenBlade:IsAvailable()
 
   -- actions+=/variable,name=maintenance,value=(dot.rupture.ticking|variable.skip_rupture)&buff.slice_and_dice.up
@@ -774,7 +775,7 @@ local function APL ()
   Secret = Player:BuffUp(S.ShadowDanceBuff) or (S.Flagellation:CooldownRemains() < 40 and S.Flagellation:CooldownRemains() > 20 and S.DeathPerception:IsAvailable())
 
   -- actions+=/variable,name=racial_sync,value=(buff.flagellation_buff.up&buff.shadow_dance.up)|!talent.shadow_blades&buff.symbols_of_death.up|fight_remains<20
-  RacialSync = Player:BuffUp(S.FlagellationBuff) and Player:BuffUp(S.ShadowDanceBuff) or not S.ShadowBlades:IsAvailable() and Player:BuffUp(S.SymbolsofDeath) or HL.BossFilteredFightRemains("<", 20)
+  RacialSync = (Player:BuffUp(S.FlagellationBuff) and Player:BuffUp(S.ShadowDanceBuff)) or not S.ShadowBlades:IsAvailable() and Player:BuffUp(S.SymbolsofDeath) or HL.BossFilteredFightRemains("<", 20)
 
   -- actions+=/variable,name=shd_cp,value=combo_points<=1|buff.darkest_night.up&combo_points>=7|effective_combo_points>=6&talent.unseen_blade
   ShdCp = ComboPoints <= 1 or Player:BuffUp(S.DarkestNightBuff) and ComboPoints >= 7 or EffectiveComboPoints >= 6 and S.UnseenBlade:IsAvailable()
