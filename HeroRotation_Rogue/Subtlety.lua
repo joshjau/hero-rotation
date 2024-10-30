@@ -56,7 +56,7 @@ local Enemies30y, MeleeEnemies10y, MeleeEnemies10yCount, MeleeEnemies5y
 local ShouldReturn; -- Used to get the return string
 local PoolingAbility, PoolingEnergy, PoolingFinisher; -- Used to store an ability we might want to pool for as a fallback in the current situation
 local RuptureThreshold, RuptureDMGThreshold
-local EffectiveComboPoints, ComboPoints, ComboPointsDeficit, StealthEnergyRequired
+local EffectiveComboPoints, ComboPoints, ComboPointsDeficit
 local PriorityRotation
 local Stealth, SkipRupture, Maintenance, Secret, RacialSync, ShdCp
 
@@ -130,19 +130,6 @@ local Settings = {
   CommonsOGCD = HR.GUISettings.APL.Rogue.CommonsOGCD,
   Subtlety = HR.GUISettings.APL.Rogue.Subtlety
 }
-
-local function SetPoolingAbility(PoolingSpell, EnergyThreshold)
-  if not PoolingAbility then
-    PoolingAbility = PoolingSpell
-    PoolingEnergy = EnergyThreshold or 0
-  end
-end
-
-local function SetPoolingFinisher(PoolingSpell)
-  if not PoolingFinisher then
-    PoolingFinisher = PoolingSpell
-  end
-end
 
 local function MayBurnShadowDance()
   if Settings.Subtlety.BurnShadowDance == "On Bosses not in Dungeons" and Player:IsInDungeonArea() then
@@ -252,8 +239,8 @@ local function Finish (ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.SecretTechnique
       end
-      if Cast(S.SecretTechnique, nil, nil, not Target:IsSpellInRange(S.SecretTechnique)) then
-        return "Cast Secret Technique"
+      if CastPooling(S.SecretTechnique, nil, not Target:IsSpellInRange(S.SecretTechnique)) then
+        return "Cast SecretTechnique"
       end
   end
 
@@ -264,10 +251,9 @@ local function Finish (ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.Rupture
       else
-        if S.Rupture:IsReady() and Cast(S.Rupture, nil, nil, not Target:IsSpellInRange(S.Rupture)) then
-          return "Cast Rupture 1"
+        if CastPooling(S.Rupture, nil, not Target:IsSpellInRange(S.Rupture)) then
+          return "Cast Rupture"
         end
-        SetPoolingFinisher(S.Rupture)
       end
     end
   end
@@ -293,10 +279,9 @@ local function Finish (ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.BlackPowder
       else
-        if S.BlackPowder:IsReady() and Cast(S.BlackPowder) then
-          return "Cast Black Powder 1"
+        if CastPooling(S.BlackPowder, nil, not Target:IsSpellInRange(S.BlackPowder)) then
+          return "Cast BlackPowder"
         end
-        SetPoolingFinisher(S.BlackPowder)
       end
     end
   end
@@ -306,10 +291,9 @@ local function Finish (ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.CoupDeGrace
     else
-      if S.CoupDeGrace:IsReady() and Cast(S.CoupDeGrace, nil, nil, not Target:IsSpellInRange(S.CoupDeGrace)) then
-        return "Cast Coup De Grace"
+      if CastPooling(S.CoupDeGrace, nil, not Target:IsSpellInRange(S.CoupDeGrace)) then
+        return "Cast CoupDeGrace"
       end
-      SetPoolingFinisher(S.CoupDeGrace)
     end
   end
 
@@ -318,10 +302,9 @@ local function Finish (ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.Eviscerate
     else
-      if S.Eviscerate:IsReady() and Cast(S.Eviscerate, nil, nil, not Target:IsSpellInRange(S.Eviscerate)) then
+      if CastPooling(S.Eviscerate, nil, not Target:IsSpellInRange(S.Eviscerate)) then
         return "Cast Eviscerate"
       end
-      SetPoolingFinisher(S.Eviscerate)
     end
   end
 
@@ -329,9 +312,7 @@ local function Finish (ReturnSpellOnly, ForceStealth)
 end
 
 -- # Builders
-local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
-  local ThresholdMet = not EnergyThreshold or Player:EnergyPredicted() >= EnergyThreshold
-
+local function Build (ReturnSpellOnly, ForceStealth)
   -- actions.build=shadowstrike,cycle_targets=1,if=debuff.find_weakness.remains<=2&variable.targets=2
   -- &talent.unseen_blade|!used_for_danse&talent.danse_macabre
   if S.Shadowstrike:IsReady() and HR.AoEON() and Player:StealthUp(true, false) then
@@ -363,10 +344,9 @@ local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.ShurikenStorm
     else
-      if ThresholdMet and Cast(S.ShurikenStorm) then
-        return "Cast Shuriken Storm"
+      if CastPooling(S.ShurikenStorm, nil, not Target:IsSpellInRange(S.ShurikenStorm)) then
+        return "Cast ShurikenStorm"
       end
-      SetPoolingAbility(S.ShurikenStorm, EnergyThreshold)
     end
   end
 
@@ -379,10 +359,9 @@ local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.ShurikenTornado
       else
-        if ThresholdMet and Cast(S.ShurikenTornado, Settings.Subtlety.GCDasOffGCD.ShurikenTornado) then
-          return "Cast Shuriken Tornado"
+        if CastPooling(S.ShurikenTornado, nil, not Target:IsSpellInRange(S.ShurikenTornado)) then
+          return "Cast ShurikenTornado"
         end
-        SetPoolingAbility(S.ShurikenTornado, EnergyThreshold)
       end
     end
   end
@@ -392,10 +371,9 @@ local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.Shadowstrike
     else
-      if ThresholdMet and Cast(S.Shadowstrike, nil, nil, not Target:IsSpellInRange(S.Shadowstrike)) then
+      if CastPooling(S.Shadowstrike, nil, not Target:IsSpellInRange(S.Shadowstrike)) then
         return "Cast Shadowstrike"
       end
-      SetPoolingAbility(S.Shadowstrike, EnergyThreshold)
     end
   end
 
@@ -405,8 +383,8 @@ local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.GoremawsBite
       else
-        if Cast(S.GoremawsBite, nil, nil, not Target:IsSpellInRange(S.GoremawsBite)) then
-          return "Cast Goremaw's Bite"
+        if CastPooling(S.GoremawsBite, nil, not Target:IsSpellInRange(S.GoremawsBite)) then
+          return "Cast GoremawsBite"
         end
       end
     end
@@ -417,10 +395,9 @@ local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.Gloomblade
     else
-      if ThresholdMet and Cast(S.Gloomblade, nil, nil, not Target:IsSpellInRange(S.Gloomblade)) then
+      if CastPooling(S.Gloomblade, nil, not Target:IsSpellInRange(S.Gloomblade)) then
         return "Cast Gloomblade"
       end
-      SetPoolingAbility(S.Gloomblade, EnergyThreshold)
     end
   end
 
@@ -429,10 +406,9 @@ local function Build (EnergyThreshold, ReturnSpellOnly, ForceStealth)
     if ReturnSpellOnly then
       return S.Backstab
     else
-      if ThresholdMet and Cast(S.Backstab, nil, nil, not Target:IsSpellInRange(S.Backstab)) then
+      if CastPooling(S.Backstab, nil, not Target:IsSpellInRange(S.Backstab)) then
         return "Cast Backstab"
       end
-      SetPoolingAbility(S.Backstab, EnergyThreshold)
     end
   end
   return false
@@ -440,7 +416,7 @@ end
 
 -- # Stealth Macros
 -- This returns a table with the original Stealth spell and the result of the Stealthed action list as if the applicable buff was present
-local function StealthMacro (StealthSpell, EnergyThreshold)
+local function StealthMacro (StealthSpell)
   -- Fetch the predicted ability to use after the stealth spell
   local MacroAbility
   if not Player:BuffUp(S.DarkestNightBuff) and EffectiveComboPoints >= 6 or Player:BuffUp(S.DarkestNightBuff) and ComboPoints == Rogue.CPMaxSpend() then
@@ -448,7 +424,7 @@ local function StealthMacro (StealthSpell, EnergyThreshold)
   end
 
   if not MacroAbility then
-    MacroAbility = Build(EnergyThreshold, true, true)
+    MacroAbility = Build(true, true)
   end
 
   -- Handle StealthMacro GUI options
@@ -471,12 +447,6 @@ local function StealthMacro (StealthSpell, EnergyThreshold)
   end
 
   local MacroTable = { StealthSpell, MacroAbility }
-
-  -- Set the stealth spell only as a pooling fallback if we did not meet the threshold
-  if EnergyThreshold and Player:EnergyPredicted() < EnergyThreshold then
-    SetPoolingAbility(MacroTable, EnergyThreshold)
-    return false
-  end
 
   ShouldReturn = CastQueue(unpack(MacroTable))
   if ShouldReturn then
@@ -654,14 +624,14 @@ local function Items()
 end
 
 -- # Stealth Cooldowns
-local function Stealth_CDs (EnergyThreshold)
+local function Stealth_CDs ()
   if HR.CDsON() and not (Everyone.IsSoloMode() and Player:IsTanking(Target)) then
     -- actions.stealth_cds=shadow_dance,if=variable.shd_cp&variable.maintenance&cooldown.secret_technique.remains<=24
     -- &(buff.symbols_of_death.remains>=6|buff.flagellation_persist.remains>=6)|fight_remains<=10
     if S.ShadowDance:IsReady() then
       if ShdCp and Maintenance and S.SecretTechnique:CooldownRemains() <= 24 and (Player:BuffRemains(S.SymbolsofDeath) >= 6
         or Player:BuffRemains(S.FlagellationPersistBuff) >= 6) or HL.BossFilteredFightRemains("<=", 10) then
-        ShouldReturn = StealthMacro(S.ShadowDance, EnergyThreshold)
+        ShouldReturn = StealthMacro(S.ShadowDance)
         if ShouldReturn then
           return "Shadow Dance Macro " .. ShouldReturn
         end
@@ -671,7 +641,7 @@ local function Stealth_CDs (EnergyThreshold)
     --actions.stealth_cds+=/vanish,if=energy>=40&!buff.subterfuge.up&effective_combo_points<=3
     if S.Vanish:IsReady() then
       if Player:Energy() >= 40 and not Player:BuffUp(S.Subterfuge) and EffectiveComboPoints <= 3 then
-        ShouldReturn = StealthMacro(S.Vanish, EnergyThreshold)
+        ShouldReturn = StealthMacro(S.Vanish)
         if ShouldReturn then
           return "Vanish Macro " .. ShouldReturn
         end
@@ -680,7 +650,7 @@ local function Stealth_CDs (EnergyThreshold)
 
     --actions.stealth_cds+=/shadowmeld,if=energy>=40&combo_points.deficit>=3
     if Settings.Commons.ShowPooling and S.Shadowmeld:IsReady() and Player:Energy() >= 40 and ComboPointsDeficit >= 3 then
-      ShouldReturn = StealthMacro(S.Shadowmeld, EnergyThreshold)
+      ShouldReturn = StealthMacro(S.Shadowmeld)
       if ShouldReturn then
         return "Shadowmeld Macro " .. ShouldReturn
       end
@@ -759,7 +729,6 @@ local function APL ()
   EffectiveComboPoints = Rogue.EffectiveComboPoints(ComboPoints)
   ComboPointsDeficit = Player:ComboPointsDeficit()
   PriorityRotation = UsePriorityRotation()
-  StealthEnergyRequired = Player:EnergyMax() - Stealth_Threshold()
 
   Stealth = Player:StealthUp(true, false)
 
@@ -882,10 +851,12 @@ local function APL ()
     end
 
     -- # Cooldowns for Stealth
-    -- actions+=/call_action_list,name=stealth_cds
-    ShouldReturn = Stealth_CDs(StealthEnergyRequired)
-    if ShouldReturn then
-      return "Stealth CDs: " .. ShouldReturn
+    -- actions+=/call_action_list,name=stealth_cds,if=!variable.stealth
+    if not Player:StealthUp(true, false) then
+      ShouldReturn = Stealth_CDs()
+      if ShouldReturn then
+        return "Stealth CDs: " .. ShouldReturn
+      end
     end
 
     -- # Finishing Rules
@@ -893,18 +864,13 @@ local function APL ()
     if not Player:BuffUp(S.DarkestNightBuff) and EffectiveComboPoints >= 6 or Player:BuffUp(S.DarkestNightBuff) and ComboPoints == Rogue.CPMaxSpend() then
       ShouldReturn = Finish()
       if ShouldReturn then
-        return "Finish: 1 " .. ShouldReturn
+        return "Finish: " .. ShouldReturn
       end
     end
 
-    -- Set Finisher as pooling ability before the builders are checked
-    if PoolingFinisher then
-      SetPoolingAbility(PoolingFinisher)
-    end
-
     -- # Combo Point Builder
-    -- actions+=/call_action_list,name=build,if=energy.deficit<=variable.stealth_threshold
-    ShouldReturn = Build(StealthEnergyRequired)
+    -- actions+=/call_action_list,name=build
+    ShouldReturn = Build()
     if ShouldReturn then
       return "Build: " .. ShouldReturn
     end
@@ -915,20 +881,6 @@ local function APL ()
       ShouldReturn = Fill()
       if ShouldReturn then
         return "Fill: " .. ShouldReturn
-      end
-    end
-
-    -- Show what ever was first stored for pooling
-    if PoolingAbility then
-      if type(PoolingAbility) == "table" and #PoolingAbility > 1 then
-        if CastQueuePooling(Player:EnergyTimeToX(PoolingEnergy), unpack(PoolingAbility)) then
-          return "Macro pool towards " .. PoolingAbility[1]:Name() .. " at " .. PoolingEnergy
-        end
-      elseif PoolingAbility:IsCastable() then
-        PoolingEnergy = mathmax(PoolingEnergy, PoolingAbility:Cost())
-        if CastPooling(PoolingAbility, Player:EnergyTimeToX(PoolingEnergy)) then
-          return "Pool towards: " .. PoolingAbility:Name() .. " at " .. PoolingEnergy
-        end
       end
     end
 
