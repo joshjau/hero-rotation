@@ -1019,7 +1019,7 @@ end
 local function Init()
   S.MarkofFyralathDebuff:RegisterAuraTracking()
 
-  HR.Print("Arms Warrior rotation has been updated for patch 11.0.2.")
+  HR.Print("Arms Warrior rotation has been updated for patch 11.0.5.")
 end
 
 HR.SetAPL(71, APL, Init)
