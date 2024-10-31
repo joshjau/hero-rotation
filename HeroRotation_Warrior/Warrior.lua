@@ -105,6 +105,7 @@ Spell.Warrior.MountainThane = {
 
 Spell.Warrior.Slayer = {
   -- Talents
+  FierceFollowthrough                   = Spell(444773),
   SlayersDominance                      = Spell(444767),
   -- Buffs
   BrutalFinishBuff                      = Spell(446918),
@@ -132,6 +133,7 @@ Spell.Warrior.Arms = MergeTableByKey(Spell.Warrior.Commons, {
   Overpower                             = Spell(7384),
   Rend                                  = Spell(772),
   Skullsplitter                         = Spell(260643),
+  StrengthofArms                        = Spell(400803),
   SweepingStrikes                       = Spell(260708),
   Unhinged                              = Spell(386628),
   Warbreaker                            = Spell(262161),
@@ -146,6 +148,7 @@ Spell.Warrior.Arms = MergeTableByKey(Spell.Warrior.Commons, {
   SweepingStrikesBuff                   = Spell(260708),
   -- Debuffs
   ColossusSmashDebuff                   = Spell(208086),
+  DeepWoundsDebuff                      = Spell(262115),
   ExecutionersPrecisionDebuff           = Spell(386633),
   RendDebuff                            = Spell(388539),
 })
