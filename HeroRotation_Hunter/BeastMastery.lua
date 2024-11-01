@@ -138,16 +138,6 @@ local function EvaluateTargetIfFilterSerpentSting(TargetUnit)
 end
 
 --- ===== CastTargetIf Condition Functions =====
-local function EvaluateTargetIfBarbedShotCleave(TargetUnit)
-  -- if=pet.main.buff.frenzy.up&pet.main.buff.frenzy.remains<=gcd+0.25|pet.main.buff.frenzy.stack<3&(cooldown.bestial_wrath.ready&(!pet.main.buff.frenzy.up|talent.scent_of_blood)|talent.call_of_the_wild&cooldown.call_of_the_wild.ready)
-  return 
-end
-
-local function EvaluateTargetIfKillShotCleave(TargetUnit)
-  -- if=talent.venoms_bite&dot.serpent_sting.remains<gcd&target.time_to_die>10
-  return TargetUnit:DebuffRemains(S.SerpentStingDebuff) < Player:GCD() and TargetUnit:TimeToDie() > 10
-end
-
 local function EvaluateTargetIfKillShotST(TargetUnit)
   -- if=talent.venoms_bite&(!active_dot.serpent_sting|dot.serpent_sting.refreshable)
   -- Note: venoms_bite handled before CastTargetIf.
