@@ -394,7 +394,7 @@ local function Single()
     if Cast(S.FrostShock, nil, nil, not Target:IsSpellInRange(S.FrostShock)) then return "frost_shock single 58"; end
   end
   -- elemental_blast,if=buff.maelstrom_weapon.stack>=5&feral_spirit.active>=4&talent.deeply_rooted_elements.enabled&(charges_fractional>=1.8|(buff.molten_weapon.stack+buff.icy_edge.stack>=4))&!talent.flowing_spirits.enabled
-  if S.ElementalBlast:IsReady() and (MaelstromStacks >= 5 and Shaman.FeralSpiritCount >= 4 and S.DeeplyRootedElements:IsAvailable() and (S.ElementalBlast:ChargesFractional() >= 1.8 or (Player:BuffStack(S.MoltenWeaponBuff) + Player:BuffStack(S.IcyEdgeBuff) >= 4)) and not S.FlowingSpirits:IsAvailable()) then
+  if S.ElementalBlast:IsReady() and (MaelstromStacks >= 5 and Shaman.FeralSpiritCount >= 4 and S.DeeplyRootedElements:IsAvailable() and (S.ElementalBlast:ChargesFractional() >= 1.8 or (Shaman.MoltenWeaponStacks + Shaman.IcyEdgeStacks >= 4)) and not S.FlowingSpirits:IsAvailable()) then
     if Cast(S.ElementalBlast, nil, nil, not Target:IsSpellInRange(S.ElementalBlast)) then return "elemental_blast single 60"; end
   end
   -- crash_lightning,if=talent.alpha_wolf.enabled&feral_spirit.active&alpha_wolf_min_remains=0
@@ -571,7 +571,7 @@ local function SingleTotemic()
     if Cast(S.PrimordialWave, nil, Settings.CommonsDS.DisplayStyle.PrimordialWave, not Target:IsSpellInRange(S.PrimordialWave)) then return "primordial_wave single_totemic 38"; end
   end
   -- elemental_blast,if=buff.maelstrom_weapon.stack>=5&(charges_fractional>=1.8|(buff.molten_weapon.stack+buff.icy_edge.stack>=4))&talent.ascendance.enabled&(feral_spirit.active>=4|!talent.elemental_spirits.enabled)
-  if S.ElementalBlast:IsReady() and (MaelstromStacks >= 5 and (S.ElementalBlast:ChargesFractional() >= 1.8 or (Player:BuffStack(S.MoltenWeaponBuff) + Player:BuffStack(S.IcyEdgeBuff) >= 4)) and S.Ascendance:IsAvailable() and (Shaman.FeralSpiritCount >= 4 or not S.ElementalSpirits:IsAvailable())) then
+  if S.ElementalBlast:IsReady() and (MaelstromStacks >= 5 and (S.ElementalBlast:ChargesFractional() >= 1.8 or (Shaman.MoltenWeaponStacks + Shaman.IcyEdgeStacks >= 4)) and S.Ascendance:IsAvailable() and (Shaman.FeralSpiritCount >= 4 or not S.ElementalSpirits:IsAvailable())) then
     if Cast(S.ElementalBlast, nil, nil, not Target:IsSpellInRange(S.ElementalBlast)) then return "elemental_blast single_totemic 40"; end
   end
   -- elemental_blast,if=talent.ascendance.enabled&(buff.maelstrom_weapon.stack>=10|(buff.maelstrom_weapon.stack>=5&buff.whirling_air.up&!buff.legacy_of_the_frost_witch.up))
@@ -619,7 +619,7 @@ local function SingleTotemic()
     if Cast(S.LavaLash, nil, nil, not Target:IsSpellInRange(S.LavaLash)) then return "lava_lash single_totemic 62"; end
   end
   -- elemental_blast,if=buff.maelstrom_weapon.stack>=5&feral_spirit.active>=4&talent.deeply_rooted_elements.enabled&(charges_fractional>=1.8|(buff.icy_edge.stack+buff.molten_weapon.stack>=4))
-  if S.ElementalBlast:IsReady() and (MaelstromStacks >= 5 and Shaman.FeralSpiritCount >= 4 and S.DeeplyRootedElements:IsAvailable() and (S.ElementalBlast:ChargesFractional() >= 1.8 or (Player:BuffStack(S.IcyEdgeBuff) + Player:BuffStack(S.MoltenWeaponBuff) >= 4))) then
+  if S.ElementalBlast:IsReady() and (MaelstromStacks >= 5 and Shaman.FeralSpiritCount >= 4 and S.DeeplyRootedElements:IsAvailable() and (S.ElementalBlast:ChargesFractional() >= 1.8 or (Shaman.IcyEdgeStacks + Shaman.MoltenWeaponStacks >= 4))) then
     if Cast(S.ElementalBlast, nil, nil, not Target:IsSpellInRange(S.ElementalBlast)) then return "elemental_blast single_totemic 64"; end
   end
   -- doom_winds,if=raid_event.adds.in>=action.doom_winds.cooldown&talent.elemental_spirits.enabled
@@ -1023,8 +1023,8 @@ local function Funnel()
   if S.Stormstrike:IsReady() and (Player:BuffStack(S.ConvergingStormsBuff) == MaxConvergingStormsStacks) then
     if Cast(S.Stormstrike, nil, nil, not Target:IsSpellInRange(S.Stormstrike)) then return "stormstrike funnel 30"; end
   end
-  -- lava_burst,if=(buff.molten_weapon.stack+buff.volcanic_strength.up>buff.crackling_surge.stack)&buff.maelstrom_weapon.stack=buff.maelstrom_weapon.max_stack
-  if S.LavaBurst:IsReady() and ((Shaman.MoltenWeaponStacks + num(Player:BuffUp(S.VolcanicStrengthBuff)) > Shaman.CracklingSurgeStacks) and MaelstromStacks == MaxMaelstromStacks) then
+  -- lava_burst,if=(buff.molten_weapon.stack>buff.crackling_surge.stack)&buff.maelstrom_weapon.stack=buff.maelstrom_weapon.max_stack
+  if S.LavaBurst:IsReady() and ((Shaman.MoltenWeaponStacks > Shaman.CracklingSurgeStacks) and MaelstromStacks == MaxMaelstromStacks) then
     if Cast(S.LavaBurst, nil, nil, not Target:IsSpellInRange(S.LavaBurst)) then return "lava_burst funnel 32"; end
   end
   -- lightning_bolt,if=buff.maelstrom_weapon.stack=buff.maelstrom_weapon.max_stack&(variable.expected_lb_funnel>variable.expected_cl_funnel)
@@ -1107,8 +1107,8 @@ local function Funnel()
   if S.ElementalBlast:IsReady() and ((not S.ElementalSpirits:IsAvailable() or (S.ElementalSpirits:IsAvailable() and (S.ElementalBlast:Charges() == S.ElementalBlast:MaxCharges() or Player:BuffUp(S.FeralSpiritBuff)))) and MaelstromStacks >= 5) then
     if Cast(S.ElementalBlast, nil, nil, not Target:IsSpellInRange(S.ElementalBlast)) then return "elemental_blast funnel 72"; end
   end
-  -- lava_burst,if=(buff.molten_weapon.stack+buff.volcanic_strength.up>buff.crackling_surge.stack)&buff.maelstrom_weapon.stack>=5
-  if S.LavaBurst:IsReady() and ((Shaman.MoltenWeaponStacks + num(Player:BuffUp(S.VolcanicStrengthBuff)) > Shaman.CracklingSurgeStacks) and MaelstromStacks >= 5) then
+  -- lava_burst,if=(buff.molten_weapon.stack>buff.crackling_surge.stack)&buff.maelstrom_weapon.stack>=5
+  if S.LavaBurst:IsReady() and ((Shaman.MoltenWeaponStacks > Shaman.CracklingSurgeStacks) and MaelstromStacks >= 5) then
     if Cast(S.LavaBurst, nil, nil, not Target:IsSpellInRange(S.LavaBurst)) then return "lava_burst funnel 74"; end
   end
   -- lightning_bolt,if=buff.maelstrom_weapon.stack>=5&(variable.expected_lb_funnel>variable.expected_cl_funnel)
