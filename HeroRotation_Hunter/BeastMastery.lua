@@ -229,7 +229,7 @@ local function Cleave()
     if Cast(S.Bloodshed, Settings.BeastMastery.GCDasOffGCD.Bloodshed, nil, not Target:IsSpellInRange(S.Bloodshed)) then return "bloodshed cleave 12"; end
   end
   -- kill_command,target_if=max:(target.health.pct<35|!talent.killer_instinct)*2+dot.a_murder_of_crows.refreshable
-  if S.KillCommand:IsCastable() then
+  if S.KillCommand:IsReady() then
     if Everyone.CastTargetIf(S.KillCommand, Enemies40y, "max", EvaluateTargetIfFilterKillCommand, nil, not Target:IsInRange(50)) then return "kill_command cleave 14"; end
   end
   -- barbed_shot,target_if=min:dot.barbed_shot.remains,if=buff.call_of_the_wild.up|talent.wild_call&charges_fractional>1.2|talent.furious_assault|talent.black_arrow&(talent.barbed_scales|talent.savagery)|fight_remains<9
@@ -300,7 +300,7 @@ local function ST()
     if Cast(S.BestialWrath, Settings.BeastMastery.GCDasOffGCD.BestialWrath) then return "bestial_wrath st 14"; end
   end
   -- kill_command,if=cooldown.kill_command.full_recharge_time<1.25*gcd
-  if S.KillCommand:IsCastable() and (S.KillCommand:FullRechargeTime() < 1.25 * Player:GCD()) then
+  if S.KillCommand:IsReady() and (S.KillCommand:FullRechargeTime() < 1.25 * Player:GCD()) then
     if Cast(S.KillCommand, nil, nil, not Target:IsSpellInRange(S.KillCommand)) then return "kill_command st 16"; end
   end
   -- multishot,if=buff.beast_cleave.remains<gcd*1.25&talent.bleak_powder&(buff.deathblow.up|(cooldown.black_arrow.remains<gcd&(target.health.pct<20|target.health.pct>81)))
