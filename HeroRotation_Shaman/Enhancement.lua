@@ -286,7 +286,7 @@ local function Single()
     if Cast(S.FeralSpirit, Settings.Enhancement.GCDasOffGCD.FeralSpirit) then return "feral_spirit single 12"; end
   end
   -- ascendance,if=dot.flame_shock.ticking&(ti_lightning_bolt&active_enemies=1&raid_event.adds.in>=action.ascendance.cooldown%2)&buff.maelstrom_weapon.stack>=2
-  if CDsON() and S.Ascendance:IsCastable() and (Target:DebuffDown(S.FlameShockDebuff) and (TIAction == S.LightningBolt and EnemiesMeleeCount == 1) and MaelstromStacks >= 2) then
+  if CDsON() and S.Ascendance:IsCastable() and (Target:DebuffUp(S.FlameShockDebuff) and (TIAction == S.LightningBolt and EnemiesMeleeCount == 1) and MaelstromStacks >= 2) then
     if Cast(S.Ascendance, Settings.CommonsOGCD.GCDasOffGCD.Ascendance) then return "ascendance single 14"; end
   end
   -- tempest,if=buff.maelstrom_weapon.stack=buff.maelstrom_weapon.max_stack|(buff.tempest.stack=buff.tempest.max_stack&(tempest_mael_count>30|buff.awakening_storms.stack=2)&buff.maelstrom_weapon.stack>=5)
