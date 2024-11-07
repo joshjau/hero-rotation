@@ -115,8 +115,6 @@ Spell.Rogue.Commons = {
   ResoundingClarity       = Spell(381622),
   Reverberation           = Spell(394332),
   SealFate                = Spell(14190),
-  Sepsis                  = Spell(385408),
-  SepsisBuff              = Spell(375939),
   ShadowDance             = Spell(185313), -- Base Spell
   ShadowDanceTalent       = Spell(394930),
   ShadowDanceBuff         = Spell(185422),
@@ -454,7 +452,7 @@ do
 
   local function ComputeImprovedGarrotePMultiplier ()
     if AssassinationSpell.ImprovedGarrote:IsAvailable() and (Player:BuffUp(AssassinationSpell.ImprovedGarroteAura, nil, true)
-      or Player:BuffUp(AssassinationSpell.ImprovedGarroteBuff, nil, true) or Player:BuffUp(AssassinationSpell.SepsisBuff, nil, true)) then
+      or Player:BuffUp(AssassinationSpell.ImprovedGarroteBuff, nil, true)) then
       return 1.5
     end
     return 1
