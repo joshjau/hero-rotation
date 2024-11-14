@@ -849,7 +849,7 @@ local function CDs ()
   -- actions.cds+=/cold_blood,use_off_gcd=1,if=(buff.fatebound_coin_tails.stack>0&buff.fatebound_coin_heads.stack>0)
   -- |debuff.shiv.up&(cooldown.deathmark.remains>50|!talent.inevitabile_end&effective_combo_points>=variable.effective_spend_cp)
   if S.ColdBlood:IsReady() and Player:DebuffDown(S.ColdBlood) then
-    if (Player:BuffStack(S.FateboundCoinTails) > 0 or Player:BuffStack(S.FateboundCoinHeads) > 0)
+    if (Player:BuffStack(S.FateboundCoinTails) > 0 and Player:BuffStack(S.FateboundCoinHeads) > 0)
       or Target:DebuffUp(S.ShivDebuff) and (S.Deathmark:CooldownRemains() > 50 or not S.InevitabileEnd:IsAvailable() and ComboPoints >= EffectiveCPSpend) then
       if Cast(S.ColdBlood, Settings.CommonsOGCD.OffGCDasOffGCD.ColdBlood) then
         return "Cast Cold Blood"
