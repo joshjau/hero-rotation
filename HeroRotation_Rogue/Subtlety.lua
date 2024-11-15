@@ -357,7 +357,7 @@ local function Build (ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.ShurikenTornado
       else
-        if CastPooling(S.ShurikenTornado) then
+        if Cast(S.ShurikenTornado, Settings.Subtlety.GCDasOffGCD.ShurikenTornado) then
           return "Cast ShurikenTornado"
         end
       end
