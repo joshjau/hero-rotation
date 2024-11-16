@@ -115,6 +115,7 @@ HR.GUISettings.APL.Rogue = {
     },
     GCDasOffGCD = {
       ShurikenTornado = false,
+      SecretTechnique = false,
     },
     OffGCDasOffGCD = {
       SymbolsofDeath = true,
