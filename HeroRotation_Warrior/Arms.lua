@@ -467,6 +467,9 @@ local function ColossusAoE()
     if Everyone.CastTargetIf(S.Bladestorm, Enemies8y, "min", EvaluateTargetIfFilterLowestHP, nil, not TargetInMeleeRange, Settings.CommonsOGCD.GCDasOffGCD.Bladestorm) then return "bladestorm colossus_aoe 22"; end
   end
   -- demolish,if=buff.colossal_might.stack>=6&talent.dreadnaught|buff.colossal_might.stack=10&talent.strength_of_arms
+  if S.Demolish:IsCastable() and (Player:BuffStack(S.ColossalMightBuff) >= 6 and S.Dreadnaught:IsAvailable() or Player:BuffStack(S.ColossalMightBuff) == 10 and S.StrengthofArms:IsAvailable()) then
+    if Cast(S.Demolish, nil, nil, not TargetInMeleeRange) then return "demolish colossus_aoe 23"; end
+  end
   -- overpower,if=talent.dreadnaught
   if S.Overpower:IsCastable() and (S.Dreadnaught:IsAvailable()) then
     if Cast(S.Overpower, nil, nil, not TargetInMeleeRange) then return "overpower colossus_aoe 24"; end
