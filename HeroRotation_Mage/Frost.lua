@@ -527,7 +527,7 @@ local function STAoEBuild()
     if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike st_aoebuild 10"; end
   end
   -- ray_of_frost,if=remaining_winters_chill&talent.frostfire_bolt|remaining_winters_chill=1
-  if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and S.FrostFireBolt:IsAvailable() or RemainingWintersChill == 1) then
+  if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and S.FrostfireBolt:IsAvailable() or RemainingWintersChill == 1) then
     if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost st_aoebuild 12"; end
   end
   -- ice_lance,if=buff.fingers_of_frost.react&!prev_gcd.1.glacial_spike|remaining_winters_chill
