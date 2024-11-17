@@ -173,7 +173,7 @@ local function CDs()
     if I.TreacherousTransmitter:IsEquippedAndReady() and (I.SpymastersWeb:IsEquipped() and (FightRemains < 50 or S.IcyVeins:CooldownRemains() < 12) or not I.SpymastersWeb:IsEquipped() and (FightRemains < 30 or Player:PrevOffGCDP(1, S.IcyVeins))) then
       if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "treacherous_transmitter cds 4"; end
     end
-    -- do_treacherous_transmitter_task,use_off_gcd=1,if=fight_remains<18|(buff.cryptic_instructions.remains<?buff.realigning_nexus_convergence_divergence.remains<?buff.errant_manaforge_emission.remains)<(action.shifting_power.execute_time+1*talent.ray_of_frost)
+    -- do_treacherous_transmitter_task,if=fight_remains<18|(buff.cryptic_instructions.remains<?buff.realigning_nexus_convergence_divergence.remains<?buff.errant_manaforge_emission.remains)<(action.shifting_power.execute_time+1*talent.ray_of_frost)
     -- TODO
     -- use_item,name=burst_of_knowledge,if=buff.icy_veins.remains<21|fight_remains<25
     if I.BurstofKnowledge:IsEquippedAndReady() and (Player:BuffRemains(S.IcyVeinsBuff) < 21 or FightRemains < 25) then
