@@ -453,8 +453,8 @@ local function Havoc()
   if S.ChaosBolt:IsReady() and (S.ChaosBolt:CastTime() < VarHavocRemains and ((not S.ImprovedChaosBolt:IsAvailable() and EnemiesCount8ySplash <= 2) or (S.ImprovedChaosBolt:IsAvailable() and ((S.Wither:IsAvailable() and S.Inferno:IsAvailable() and EnemiesCount8ySplash <= 2) or (((S.Wither:IsAvailable() and S.Cataclysm:IsAvailable()) or (not S.Wither:IsAvailable() and S.Inferno:IsAvailable())) and EnemiesCount8ySplash <= 3) or (not S.Wither:IsAvailable() and S.Cataclysm:IsAvailable() and EnemiesCount8ySplash <= 4))))) then
     if Cast(S.ChaosBolt, nil, nil, not Target:IsSpellInRange(S.ChaosBolt)) then return "chaos_bolt havoc 18"; end
   end
-  -- rain_of_fire,if=active_enemies>=3-talent.wither
-  if S.RainofFire:IsReady() and (EnemiesCount8ySplash >= 3 - num(S.Wither:IsAvailable())) then
+  -- rain_of_fire,if=active_enemies>=3
+  if S.RainofFire:IsReady() and (EnemiesCount8ySplash >= 3) then
     if Cast(S.RainofFire, nil, nil, not Target:IsSpellInRange(S.Conflagrate)) then return "rain_of_fire havoc 20"; end
   end
   -- channel_demonfire,if=soul_shard<4.5
