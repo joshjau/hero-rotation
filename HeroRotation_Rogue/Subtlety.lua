@@ -277,7 +277,7 @@ local function Finish (ReturnSpellOnly, ForceStealth)
       if ReturnSpellOnly then
         return S.BlackPowder
       else
-        if CastPooling(S.BlackPowder, nil, not Target:IsSpellInRange(S.BlackPowder)) then
+        if CastPooling(S.BlackPowder, nil, not TargetInAoERange) then
           return "Cast BlackPowder"
         end
       end

@@ -415,7 +415,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
       return TargetUnit:DebuffRemains(S.Rupture)
     end
     local function RuptureIfFunc(TargetUnit)
-      return ComboPoints >= EffectiveCPSpend and Player:BuffUp(S.IndiscriminateCarnageBuff) and TargetUnit:DebuffRefreshable(S.Rupture)
+      return ComboPoints >= EffectiveCPSpend and (Player:BuffUp(S.IndiscriminateCarnageBuff) or ForceStealth) and TargetUnit:DebuffRefreshable(S.Rupture)
         and (not EnergyRegenSaturated or not ScentSaturated or TargetUnit:DebuffDown(S.Rupture))
         and Target:TimeToDie() > 15
     end
@@ -425,7 +425,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
         if ReturnSpellOnly then
           return S.Rupture
         else
-          if IndiscriminateCarnageRemains() > 0 and Settings.Assassination.ShowIndiscriminateCarnageOnMainIcon then
+          if (IndiscriminateCarnageRemains() > 0 or ForceStealth) and Settings.Assassination.ShowIndiscriminateCarnageOnMainIcon then
             if Cast(S.Rupture, nil, nil, not TargetInMeleeRange) then
               return "Cast Rupture (Stealth Indiscriminate Carnage)"
             end
@@ -456,7 +456,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
     end
     local function GarroteIfFunc(TargetUnit)
       return (TargetUnit:PMultiplier(S.Garrote) <= 1 or TargetUnit:DebuffRemains(S.Garrote) < 12
-        or (IndiscriminateCarnageRemains() > 0 and S.Garrote:AuraActiveCount() < MeleeEnemies10yCount)) and not SingleTarget
+        or ((IndiscriminateCarnageRemains() > 0 or ForceStealth) and S.Garrote:AuraActiveCount() < MeleeEnemies10yCount)) and not SingleTarget
         and (TargetUnit:FilteredTimeToDie(">", 2, -TargetUnit:DebuffRemains(S.Garrote)) or TargetUnit:TimeToDieIsNotValid())
         and Rogue.CanDoTUnit(TargetUnit, GarroteDMGThreshold)
     end
@@ -466,7 +466,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
         if ReturnSpellOnly then
           return S.Rupture
         else
-          if IndiscriminateCarnageRemains() > 0 and Settings.Assassination.ShowIndiscriminateCarnageOnMainIcon then
+          if (IndiscriminateCarnageRemains() > 0 or ForceStealth) and Settings.Assassination.ShowIndiscriminateCarnageOnMainIcon then
             if Cast(S.Garrote, nil, nil, not TargetInMeleeRange) then
               return "Cast Garrote (Improved Garrote Carnage)"
             end
@@ -694,19 +694,23 @@ local function ShivUsage ()
     -- actions.shiv+=/shiv,if=!talent.lightweight_shiv.enabled&variable.shiv_kingsbane_condition
     -- &(dot.kingsbane.ticking&dot.kingsbane.remains<8|!dot.kingsbane.ticking&cooldown.kingsbane.remains>=20)
     -- &(!talent.crimson_tempest.enabled|variable.single_target|dot.crimson_tempest.ticking)
-    if not S.LightweightShiv:IsAvailable() and ShivKingsbaneCondition
+    if not S.LightweightShiv:IsAvailable() then
+      if ShivKingsbaneCondition
       and (Target:DebuffUp(S.Kingsbane) and Target:DebuffRemains(S.Kingsbane) < 8 or not Target:DebuffUp(S.Kingsbane) and S.Kingsbane:CooldownRemains() >= 20)
       and (not S.CrimsonTempest:IsAvailable() or SingleTarget or Target:DebuffUp(S.CrimsonTempest)) then
-      if Cast(S.Shiv, Settings.Assassination.GCDasOffGCD.Shiv) then
-        return "Cast Shiv (Kingsbane)"
+        if Cast(S.Shiv, Settings.Assassination.GCDasOffGCD.Shiv) then
+          return "Cast Shiv (Kingsbane)"
+        end
       end
     end
 
     -- actions.shiv+=/shiv,if=talent.lightweight_shiv.enabled&variable.shiv_kingsbane_condition
     -- &(dot.kingsbane.ticking|cooldown.kingsbane.remains<=1)
-    if S.LightweightShiv:IsAvailable() and ShivKingsbaneCondition and (Target:DebuffUp(S.Kingsbane) or S.Kingsbane:CooldownRemains() <= 1) then
-      if Cast(S.Shiv, Settings.Assassination.GCDasOffGCD.Shiv) then
-        return "Cast Shiv (Kingsbane Lightweight)"
+    if S.LightweightShiv:IsAvailable() then
+      if ShivKingsbaneCondition and (Target:DebuffUp(S.Kingsbane) or S.Kingsbane:CooldownRemains() <= 1) then
+        if Cast(S.Shiv, Settings.Assassination.GCDasOffGCD.Shiv) then
+          return "Cast Shiv (Kingsbane Lightweight)"
+        end
       end
     end
 
