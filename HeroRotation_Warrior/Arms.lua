@@ -285,8 +285,8 @@ local function ColossusExecute()
     if Cast(S.Warbreaker, Settings.Arms.GCDasOffGCD.Warbreaker, nil, not Target:IsInRange(8)) then return "warbreaker colossus_execute 16"; end
   end
   -- skullsplitter,if=rage<85
-  if S.SkullSplitter:IsCastable() and (Player:Rage() < 85) then
-    if Cast(S.SkullSplitter, nil, nil, not Target:IsInMeleeRange(8)) then return "skullsplitter colossus_execute 18"; end
+  if S.Skullsplitter:IsCastable() and (Player:Rage() < 85) then
+    if Cast(S.Skullsplitter, nil, nil, not Target:IsInMeleeRange(8)) then return "skullsplitter colossus_execute 18"; end
   end
   -- demolish,if=debuff.colossus_smash.up
   if S.Demolish:IsCastable() and (Target:DebuffUp(S.ColossusSmashDebuff)) then
