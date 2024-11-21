@@ -456,7 +456,8 @@ local function SpellQueueMacro (BaseSpell, ReturnSpellOnly)
         local MacroAbilities = StealthCDs(true)
 
         -- Make sure StealthCDs returned a combo which may not happen if targeting something out of range
-        if MacroAbilities and MacroAbilities[2] and MacroAbilities[2] ~= "Cast Vanish" then
+        if MacroAbilities and MacroAbilities[2] and MacroAbilities[2] ~= "Cast Vanish"
+          and Settings.Outlaw.SpellQueueMacro.ImprovedAdrenalineRush then
           local ARMacroTable = { BaseSpell, unpack(MacroAbilities) }
           ShouldReturn = CastQueue(unpack(ARMacroTable))
           if ShouldReturn then
@@ -468,12 +469,12 @@ local function SpellQueueMacro (BaseSpell, ReturnSpellOnly)
       else
         MacroAbility = Stealth(true)
       end
-      if not Settings.Outlaw.SpellQueueMacro.ImprovedAdrenalineRush or not MacroAbility then
-        if Cast(S.AdrenalineRush, Settings.Outlaw.OffGCDasOffGCD.AdrenalineRush) then
-          return "Cast Adrenaline Rush"
-        end
-        return false
+    end
+    if not Settings.Outlaw.SpellQueueMacro.ImprovedAdrenalineRush or not MacroAbility then
+      if Cast(S.AdrenalineRush, Settings.Outlaw.OffGCDasOffGCD.AdrenalineRush) then
+        return "Cast Adrenaline Rush"
       end
+      return false
     end
   end
 
