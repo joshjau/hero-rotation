@@ -64,6 +64,11 @@ local OnUseExcludeTrinkets = {
   I.TreacherousTransmitter:ID(),
 }
 
+local CrimsonTempestIgnoreNPCs = {
+  219739, -- infest spawn, rasha'nan
+  220626, -- parasites ovi'nax
+}
+
 -- Enemies
 local MeleeRange, AoERange, TargetInMeleeRange, TargetInAoERange
 local Enemies30y, MeleeEnemies10y, MeleeEnemies10yCount, MeleeEnemies5y
@@ -464,7 +469,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
       local TargetIfUnit = CheckTargetIfTarget("min", GarroteTargetIfFunc, GarroteIfFunc)
       if TargetIfUnit and TargetIfUnit:GUID() ~= Target:GUID() then
         if ReturnSpellOnly then
-          return S.Rupture
+          return S.Garrote
         else
           if (IndiscriminateCarnageRemains() > 0 or ForceStealth) and Settings.Assassination.ShowIndiscriminateCarnageOnMainIcon then
             if Cast(S.Garrote, nil, nil, not TargetInMeleeRange) then
@@ -902,7 +907,7 @@ local function Core_Dot()
   -- &target.time_to_die-remains>8&buff.momentum_of_despair.remains>6&variable.single_target
   if S.CrimsonTempest:IsReady() and ComboPoints >= EffectiveCPSpend and IsDebuffRefreshable(Target, S.CrimsonTempest)
     and Target:TimeToDie() > 8 and Player:BuffRemains(S.MomentumOfDespair) > 6 and SingleTarget then
-    if Cast(S.CrimsonTempest) then
+    if Cast(S.CrimsonTempest, Settings.Assassination.GCDasOffGCD.CrimsonTempest) then
       return "Crimson Tempest with Momentum of Despair"
     end
   end
@@ -919,8 +924,8 @@ local function AoE_Dot ()
   if HR.AoEON() and S.CrimsonTempest:IsReady() and MeleeEnemies10yCount >= 2 and DotFinisherCondition then
     for _, CycleUnit in pairs(MeleeEnemies10y) do
       if IsDebuffRefreshable(CycleUnit, S.CrimsonTempest, CrimsonTempestThreshold)
-        and CycleUnit:FilteredTimeToDie(">", 6) then
-        if Cast(S.CrimsonTempest) then
+        and CycleUnit:FilteredTimeToDie(">", 6) and not ValueIsInArray(CrimsonTempestIgnoreNPCs, CycleUnit:NPCID()) then
+        if Cast(S.CrimsonTempest, Settings.Assassination.GCDasOffGCD.CrimsonTempest) then
           return "Cast Crimson Tempest (AoE High Energy)"
         end
       end
@@ -1174,7 +1179,7 @@ local function APL ()
 
     -- # Check to clip envenom
     -- actions+=/variable,name=clip_envenom,value=buff.envenom.up&buff.envenom.remains.1<=1
-    ClipEnvenom = Player:BuffUp(S.Envenom) and Target:DebuffRemains(S.Envenom) <= 1
+    ClipEnvenom = Player:BuffUp(S.Envenom)
 
     -- # Check upper bounds of energy to begin spending
     -- actions+=/variable,name=upper_limit_energy,value=energy.pct>=(50-10*talent.vicious_venoms.rank)

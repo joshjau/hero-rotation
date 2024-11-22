@@ -484,6 +484,7 @@ local function SpellQueueMacro (BaseSpell, ReturnSpellOnly)
     return "| " .. MacroTable[2]:Name()
   end
 
+  ComboPoints = Player:ComboPoints()
   return false
 end
 
@@ -984,11 +985,12 @@ local function APL ()
       if ShouldReturn then
         return "Finish: " .. ShouldReturn
       end
-    end
-    -- actions+=/call_action_list,name=build
-    ShouldReturn = Build()
-    if ShouldReturn then
-      return "Build: " .. ShouldReturn
+    else
+      -- actions+=/call_action_list,name=build
+      ShouldReturn = Build()
+      if ShouldReturn then
+        return "Build: " .. ShouldReturn
+      end
     end
 
     -- actions+=/arcane_torrent,if=energy.deficit>=15+energy.regen

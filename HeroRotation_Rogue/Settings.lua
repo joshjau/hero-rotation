@@ -68,6 +68,7 @@ HR.GUISettings.APL.Rogue = {
       Selected = "Tempered",
     },
     GCDasOffGCD = {
+      CrimsonTempest = false,
       Exsanguinate = false,
       Kingsbane = false,
       Shiv = false,
