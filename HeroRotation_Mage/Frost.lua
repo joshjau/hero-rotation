@@ -55,8 +55,7 @@ local Settings = {
 }
 
 --- ===== Rotation Variables =====
-local VarSTAoEBuild = S.Splinterstorm:IsAvailable() and not (S.ColdFront:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable() and S.FrozenTouch:IsAvailable()) or S.FrostfireBolt:IsAvailable() and not (S.DeepShatter:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable())
-local VarSTFF = S.FrostfireBolt:IsAvailable()
+local VarBoltSpam = S.Splinterstorm:IsAvailable() and S.ColdFront:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable() and S.FrozenTouch:IsAvailable() or S.FrostfireBolt:IsAvailable() and S.DeepShatter:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable()
 local Bolt = S.FrostfireBolt:IsAvailable() and S.FrostfireBolt or S.Frostbolt
 local EnemiesCount8ySplash, EnemiesCount16ySplash --Enemies arround target
 local Enemies16ySplash
@@ -81,8 +80,7 @@ HL:RegisterForEvent(function()
   S.IceLance:RegisterInFlightEffect(228598)
   S.IceLance:RegisterInFlight()
   S.Splinterstorm:RegisterInFlight()
-  VarSTAoEBuild = S.Splinterstorm:IsAvailable() and not (S.ColdFront:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable() and S.FrozenTouch:IsAvailable()) or S.FrostfireBolt:IsAvailable() and not (S.DeepShatter:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable())
-  VarSTFF = S.FrostfireBolt:IsAvailable()
+  VarBoltSpam = S.Splinterstorm:IsAvailable() and S.ColdFront:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable() and S.FrozenTouch:IsAvailable() or S.FrostfireBolt:IsAvailable() and S.DeepShatter:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable()
   Bolt = S.FrostfireBolt:IsAvailable() and S.FrostfireBolt or S.Frostbolt
 end, "SPELLS_CHANGED", "LEARNED_SPELL_IN_TAB")
 S.Frostbolt:RegisterInFlightEffect(228597)
@@ -152,8 +150,7 @@ local function Precombat()
     if Cast(S.ArcaneIntellect, Settings.CommonsOGCD.GCDasOffGCD.ArcaneIntellect) then return "arcane_intellect precombat 2"; end
   end
   -- snapshot_stats
-  -- variable,name=st_aoebuild,value=talent.splinterstorm&!(talent.cold_front&talent.slick_ice&talent.deaths_chill&talent.frozen_touch)|talent.frostfire_bolt&!(talent.deep_shatter&talent.slick_ice&talent.deaths_chill)
-  -- variable,name=st_ff,value=talent.frostfire_bolt
+  -- variable,name=boltspam,value=talent.splinterstorm&talent.cold_front&talent.slick_ice&talent.deaths_chill&talent.frozen_touch|talent.frostfire_bolt&talent.deep_shatter&talent.slick_ice&talent.deaths_chill
   -- Note: Variables moved to declarations and SPELLS_CHANGED/LEARNED_SPELL_IN_TAB Event Registrations.
   -- blizzard,if=active_enemies>=2&talent.ice_caller&!talent.fractured_frost|active_enemies>=4
   -- Note: Can't check active_enemies in Precombat
@@ -169,8 +166,8 @@ local function CDs()
     if I.ImperfectAscendancySerum:IsEquippedAndReady() and (Player:BuffRemains(S.IcyVeinsBuff) > 19 or BossFightRemains < 25) then
       if Cast(I.ImperfectAscendancySerum, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "imperfect_ascendancy_serum cds 2"; end
     end
-    -- use_item,name=treacherous_transmitter,if=equipped.spymasters_web&(fight_remains<50|cooldown.icy_veins.remains<12)|!equipped.spymasters_web&(fight_remains<30|prev_off_gcd.icy_veins)
-    if I.TreacherousTransmitter:IsEquippedAndReady() and (I.SpymastersWeb:IsEquipped() and (FightRemains < 50 or S.IcyVeins:CooldownRemains() < 12) or not I.SpymastersWeb:IsEquipped() and (FightRemains < 30 or Player:PrevOffGCDP(1, S.IcyVeins))) then
+    -- use_item,name=treacherous_transmitter,if=equipped.spymasters_web&(fight_remains<50|cooldown.icy_veins.remains<12|cooldown.icy_veins.remains<22&cooldown.shifting_power.remains<10)|!equipped.spymasters_web&(fight_remains<30|prev_off_gcd.icy_veins)
+    if I.TreacherousTransmitter:IsEquippedAndReady() and (I.SpymastersWeb:IsEquipped() and (FightRemains < 50 or S.IcyVeins:CooldownRemains() < 12 or S.IcyVeins:CooldownRemains() < 22 and S.ShiftingPower:CooldownRemains() < 10) or not I.SpymastersWeb:IsEquipped() and (FightRemains < 30 or Player:PrevOffGCDP(1, S.IcyVeins))) then
       if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "treacherous_transmitter cds 4"; end
     end
     -- do_treacherous_transmitter_task,if=fight_remains<18|(buff.cryptic_instructions.remains<?buff.realigning_nexus_convergence_divergence.remains<?buff.errant_manaforge_emission.remains)<(action.shifting_power.execute_time+1*talent.ray_of_frost)
@@ -216,21 +213,17 @@ local function CDs()
     if S.BloodFury:IsCastable() then
       if Cast(S.BloodFury, Settings.CommonsOGCD.OffGCDasOffGCD.Racials) then return "blood_fury cds 16"; end
     end
-    -- berserking
-    if S.Berserking:IsCastable() then
+    -- berserking,if=buff.icy_veins.remains>10&buff.icy_veins.remains<15|fight_remains<15
+    if S.Berserking:IsCastable() and (Player:BuffRemains(S.IcyVeinsBuff) > 10 and Player:BuffRemains(S.IcyVeinsBuff) < 15 or BossFightRemains < 15) then
       if Cast(S.Berserking, Settings.CommonsOGCD.OffGCDasOffGCD.Racials) then return "berserking cds 18"; end
-    end
-    -- lights_judgment
-    if S.LightsJudgment:IsCastable() then
-      if Cast(S.LightsJudgment, Settings.CommonsOGCD.OffGCDasOffGCD.Racials, nil, not Target:IsSpellInRange(S.LightsJudgment)) then return "lights_judgment cds 20"; end
     end
     -- fireblood
     if S.Fireblood:IsCastable() then
-      if Cast(S.Fireblood, Settings.CommonsOGCD.OffGCDasOffGCD.Racials) then return "fireblood cds 22"; end
+      if Cast(S.Fireblood, Settings.CommonsOGCD.OffGCDasOffGCD.Racials) then return "fireblood cds 20"; end
     end
     -- ancestral_call
     if S.AncestralCall:IsCastable() then
-      if Cast(S.AncestralCall, Settings.CommonsOGCD.OffGCDasOffGCD.Racials) then return "ancestral_call cds 24"; end
+      if Cast(S.AncestralCall, Settings.CommonsOGCD.OffGCDasOffGCD.Racials) then return "ancestral_call cds 22"; end
     end
   end
 end
@@ -459,84 +452,49 @@ local function CleaveSS()
   if S.CometStorm:IsCastable() and (Player:PrevGCDP(1, S.Flurry) and Player:BuffDown(S.IcyVeinsBuff)) then
     if Cast(S.CometStorm, Settings.Frost.GCDasOffGCD.CometStorm, nil, not Target:IsSpellInRange(S.CometStorm)) then return "comet_storm cleave_ss 2"; end
   end
+  -- freeze,if=freezable&prev_gcd.1.glacial_spike
+  if Pet:IsActive() and S.Freeze:IsReady() and (Freezable() and Player:PrevGCDP(1, S.GlacialSpike)) then
+    if Cast(S.Freeze, nil, nil, not Target:IsSpellInRange(S.Freeze)) then return "freeze cleave_ss 4"; end
+  end
   -- flurry,if=cooldown_react&remaining_winters_chill=0&debuff.winters_chill.down&(prev_gcd.1.frostbolt|prev_gcd.1.glacial_spike)
   if S.Flurry:IsCastable() and (RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff) and (Player:PrevGCDP(1, S.Frostbolt) or Player:PrevGCDP(1, S.GlacialSpike))) then
-    if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry cleave_ss 4"; end
+    if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry cleave_ss 6"; end
   end
   -- flurry,target_if=min:debuff.winters_chill.stack,if=cooldown_react&prev_gcd.1.glacial_spike
   if S.Flurry:IsCastable() and (Player:PrevGCDP(1, S.GlacialSpike)) then
-    if Everyone.CastTargetIf(S.Flurry, Enemies16ySplash, "min", EvaluateTargetIfFilterWCStacks, nil, not Target:IsSpellInRange(S.Flurry), Settings.Frost.GCDasOffGCD.Flurry) then return "flurry cleave_ss 6"; end
+    if Everyone.CastTargetIf(S.Flurry, Enemies16ySplash, "min", EvaluateTargetIfFilterWCStacks, nil, not Target:IsSpellInRange(S.Flurry), Settings.Frost.GCDasOffGCD.Flurry) then return "flurry cleave_ss 8"; end
   end
-  -- freeze,if=freezable&debuff.frozen.down&(!talent.glacial_spike|prev_gcd.1.glacial_spike)
-  if Pet:IsActive() and S.Freeze:IsReady() and (Freezable() and FrozenRemains() == 0 and (not S.GlacialSpike:IsAvailable() or Player:PrevGCDP(1, S.GlacialSpike))) then
-    if Cast(S.Freeze, nil, nil, not Target:IsSpellInRange(S.Freeze)) then return "freeze cleave_ss 8"; end
+  -- ice_nova,if=freezable&!prev_off_gcd.freeze&prev_gcd.1.glacial_spike&remaining_winters_chill=0&debuff.winters_chill.down
+  if S.IceNova:IsCastable() and (Freezable() and not Player:PrevOffGCDP(1, S.Freeze) and Player:PrevGCDP(1, S.GlacialSpike) and RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff)) then
+    if Cast(S.IceNova, nil, Settings.Frost.DisplayStyle.Movement, not Target:IsSpellInRange(S.IceNova)) then return "ice_nova cleave_ss 10"; end
   end
-  -- frozen_orb,if=cooldown_react
-  if S.FrozenOrb:IsCastable() then
-    if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then return "frozen_orb cleave_ss 10"; end
+  -- frozen_orb,if=cooldown_react&(cooldown.icy_veins.remains>22|buff.icy_veins.up)
+  if S.FrozenOrb:IsCastable() and (S.IcyVeins:CooldownRemains() > 22 or Player:BuffUp(S.IcyVeinsBuff)) then
+    if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then return "frozen_orb cleave_ss 12"; end
   end
-  -- shifting_power,if=cooldown.icy_veins.remains>10&cooldown.flurry.remains&(fight_remains>cooldown.icy_veins.remains-6)
-  if CDsON() and S.ShiftingPower:IsCastable() and (S.IcyVeins:CooldownRemains() > 10 and S.Flurry:CooldownDown() and (FightRemains > S.IcyVeins:CooldownRemains() - 6)) then
-    if Cast(S.ShiftingPower, nil, Settings.CommonsDS.DisplayStyle.ShiftingPower, not Target:IsInRange(18)) then return "shifting_power cleave_ss 12"; end
+  -- shifting_power,if=cooldown.icy_veins.remains>10&!action.flurry.cooldown_react&(buff.icy_veins.down|buff.icy_veins.remains>10)&(fight_remains+10>cooldown.icy_veins.remains)
+  if CDsON() and S.ShiftingPower:IsCastable() and (S.IcyVeins:CooldownRemains() > 10 and S.Flurry:CooldownDown() and (Player:BuffDown(S.IcyVeinsBuff) or Player:BuffRemains(S.IcyVeinsBuff) > 10) and (FightRemains + 10 > S.IcyVeins:CooldownRemains())) then
+    if Cast(S.ShiftingPower, nil, Settings.CommonsDS.DisplayStyle.ShiftingPower, not Target:IsInRange(18)) then return "shifting_power cleave_ss 14"; end
   end
-  -- glacial_spike,if=buff.icicles.react=5&(action.flurry.cooldown_react|remaining_winters_chill|freezable&cooldown.freeze.ready)
-  if S.GlacialSpike:IsReady() and (Icicles == 5 and (S.Flurry:CooldownUp() or RemainingWintersChill > 0) or Freezable() and S.Freeze:CooldownUp()) then
-    if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike cleave_ss 14"; end
+  -- glacial_spike,if=buff.icicles.react=5&(action.flurry.cooldown_react|remaining_winters_chill|freezable&cooldown.ice_nova.ready&!buff.fingers_of_frost.react)
+  if S.GlacialSpike:IsReady() and (Icicles == 5 and (S.Flurry:CooldownUp() or RemainingWintersChill > 0 or Freezable() and S.IceNova:CooldownUp() and Player:BuffDown(S.FingersofFrostBuff))) then
+    if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike cleave_ss 16"; end
   end
   -- ray_of_frost,if=remaining_winters_chill&buff.icy_veins.down
   if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and Player:BuffDown(S.IcyVeinsBuff)) then
-    if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost cleave_ss 16"; end
+    if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost cleave_ss 18"; end
   end
-  -- frostbolt,if=talent.deaths_chill&(!talent.freezing_rain&buff.icy_veins.remains>8&buff.deaths_chill.stack<=13|talent.freezing_rain&buff.icy_veins.remains>22)
-  if Bolt:IsCastable() and (S.DeathsChill:IsAvailable() and (not S.FreezingRain:IsAvailable() and Player:BuffRemains(S.IcyVeinsBuff) > 8 and Player:BuffStack(S.DeathsChillBuff) <= 13 or S.FreezingRain:IsAvailable() and Player:BuffRemains(S.IcyVeinsBuff) > 22)) then
-    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt cleave_ss 18"; end
+  -- frostbolt,if=talent.deaths_chill&buff.icy_veins.remains>8&buff.deaths_chill.stack<=(8+4*talent.slick_ice)
+  if Bolt:IsCastable() and (S.DeathsChill:IsAvailable() and Player:BuffRemains(S.IcyVeinsBuff) > 8 and Player:BuffStack(S.DeathsChillBuff) <= (8 + 4 * num(S.SlickIce:IsAvailable()))) then
+    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt cleave_ss 20"; end
   end
-  -- ice_lance,if=buff.fingers_of_frost.react&!prev_gcd.1.glacial_spike
+  -- ice_lance,if=buff.fingers_of_frost.react&!prev_gcd.1.glacial_spike|!variable.boltspam&remaining_winters_chill
   if S.IceLance:IsReady() and (Player:BuffUp(S.FingersofFrostBuff) and not Player:PrevGCDP(1, S.GlacialSpike)) then
-    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance cleave_ss 20"; end
+    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance cleave_ss 22"; end
   end
   -- frostbolt
   if Bolt:IsCastable() then
-    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt cleave_ss 22"; end
-  end
-  -- call_action_list,name=movement
-  if Player:IsMoving() then
-    local ShouldReturn = Movement(); if ShouldReturn then return ShouldReturn; end
-  end
-end
-
-local function STAoEBuild()
-  -- comet_storm,if=prev_gcd.1.flurry&(buff.icy_veins.down|talent.frostfire_bolt)
-  if S.CometStorm:IsCastable() and (Player:PrevGCDP(1, S.Flurry) and (Player:BuffDown(S.IcyVeinsBuff) or S.FrostfireBolt:IsAvailable())) then
-    if Cast(S.CometStorm, Settings.Frost.GCDasOffGCD.CometStorm, nil, not Target:IsSpellInRange(S.CometStorm)) then return "comet_storm st_aoebuild 2"; end
-  end
-  -- flurry,if=cooldown_react&(buff.icicles.react<5|talent.splinterstorm)&(remaining_winters_chill=0&debuff.winters_chill.down&(prev_gcd.1.frostbolt|prev_gcd.1.frostfire_bolt|prev_gcd.1.glacial_spike)|buff.excess_frost.react)
-  if S.Flurry:IsCastable() and ((Icicles < 5 or S.Splinterstorm:IsAvailable()) and (RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff) and (Player:PrevGCDP(1, Bolt) or Player:PrevGCDP(1, S.GlacialSpike)) or Player:BuffUp(S.ExcessFrostBuff))) then
-    if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry st_aoebuild 4"; end
-  end
-  -- frozen_orb,if=cooldown_react&(talent.splinterstorm|(!talent.ray_of_frost|buff.fingers_of_frost.down&cooldown.ray_of_frost.remains&buff.icicles.react<5))
-  if S.FrozenOrb:IsCastable() and (S.Splinterstorm:IsAvailable() or (not S.RayofFrost:IsAvailable() or Player:BuffDown(S.FingersofFrostBuff) and S.RayofFrost:CooldownDown() and Icicles < 5)) then
-    if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then return "frozen_orb st_aoebuild 6"; end
-  end
-  -- shifting_power,if=(cooldown.icy_veins.remains>10&cooldown.flurry.remains&(fight_remains+10>cooldown.icy_veins.remains)|talent.frostfire_bolt)&(talent.splinterstorm|(buff.icy_veins.down|!talent.deaths_chill)&cooldown.frozen_orb.remains>10&(!talent.comet_storm|cooldown.comet_storm.remains>10)&(!talent.ray_of_frost|cooldown.ray_of_frost.remains>10)&buff.icicles.react<5)
-  if S.ShiftingPower:IsCastable() and ((S.IcyVeins:CooldownRemains() > 10 and S.Flurry:CooldownDown() and (FightRemains + 10 > S.IcyVeins:CooldownRemains()) or S.FrostfireBolt:IsAvailable()) and (S.Splinterstorm:IsAvailable() or (Player:BuffDown(S.IcyVeinsBuff) or not S.DeathsChill:IsAvailable()) and S.FrozenOrb:CooldownRemains() > 10 and (not S.CometStorm:IsAvailable() or S.CometStorm:CooldownRemains() > 10) and (not S.RayofFrost:IsAvailable() or S.RayofFrost:CooldownRemains() > 10) and Icicles < 5)) then
-    if Cast(S.ShiftingPower, nil, Settings.CommonsDS.DisplayStyle.ShiftingPower, not Target:IsInRange(18)) then return "shifting_power st_aoebuild 8"; end
-  end
-  -- glacial_spike,if=buff.icicles.react=5&(action.flurry.cooldown_react|remaining_winters_chill)
-  if S.GlacialSpike:IsReady() and (Icicles == 5 and (S.Flurry:Charges() >= 1 or RemainingWintersChill > 0)) then
-    if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike st_aoebuild 10"; end
-  end
-  -- ray_of_frost,if=remaining_winters_chill&talent.frostfire_bolt|remaining_winters_chill=1
-  if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and S.FrostfireBolt:IsAvailable() or RemainingWintersChill == 1) then
-    if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost st_aoebuild 12"; end
-  end
-  -- ice_lance,if=buff.fingers_of_frost.react&!prev_gcd.1.glacial_spike|remaining_winters_chill
-  if S.IceLance:IsReady() and (Player:BuffUp(S.FingersofFrostBuff) and not Player:PrevGCDP(1, S.GlacialSpike) or RemainingWintersChill > 0) then
-    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance st_aoebuild 14"; end
-  end
-  -- frostbolt
-  if Bolt:IsCastable() then
-    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt st_aoebuild 16"; end
+    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt cleave_ss 24"; end
   end
   -- call_action_list,name=movement
   if Player:IsMoving() then
@@ -545,41 +503,45 @@ local function STAoEBuild()
 end
 
 local function STFF()
-  -- comet_storm,if=prev_gcd.1.flurry|prev_gcd.1.cone_of_cold
-  if S.CometStorm:IsCastable() and (Player:PrevGCDP(1, S.Flurry) or Player:PrevGCDP(1, S.ConeofCold)) then
+  -- comet_storm,if=prev_gcd.1.flurry
+  if S.CometStorm:IsCastable() and (Player:PrevGCDP(1, S.Flurry)) then
     if Cast(S.CometStorm, Settings.Frost.GCDasOffGCD.CometStorm, nil, not Target:IsSpellInRange(S.CometStorm)) then return "comet_storm st_ff 2"; end
   end
-  -- flurry,if=cooldown_react&buff.icicles.react<5&remaining_winters_chill=0&(debuff.winters_chill.down|buff.brain_freeze.react|buff.excess_frost.react)
-  if S.Flurry:IsCastable() and (Icicles < 5 and RemainingWintersChill == 0 and (Target:DebuffDown(S.WintersChillDebuff) or Player:BuffUp(S.BrainFreezeBuff) or Player:BuffUp(S.ExcessFrostBuff))) then
+  -- flurry,if=variable.boltspam&(cooldown_react&buff.icicles.react<5&remaining_winters_chill=0&(debuff.winters_chill.down|buff.brain_freeze.react|buff.excess_frost.react))
+  if S.Flurry:IsCastable() and (VarBoltSpam and (Icicles < 5 and RemainingWintersChill == 0 and (Target:DebuffDown(S.WintersChillDebuff) or Player:BuffUp(S.BrainFreezeBuff) or Player:BuffUp(S.ExcessFrostBuff)))) then
     if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry st_ff 4"; end
   end
-  -- cone_of_cold,if=talent.coldest_snap&prev_gcd.1.comet_storm&active_enemies>=3
-  if S.ConeofCold:IsCastable() and (S.ColdestSnap:IsAvailable() and Player:PrevGCDP(1, S.CometStorm) and EnemiesCount16ySplash >= 3) then
-    if Cast(S.ConeofCold, nil, nil, not Target:IsInRange(12)) then return "cone_of_cold st_ff 6"; end
+  -- flurry,if=!variable.boltspam&(cooldown_react&buff.icicles.react<5&(remaining_winters_chill=0&debuff.winters_chill.down&(prev_gcd.1.frostfire_bolt|prev_gcd.1.glacial_spike)|buff.excess_frost.react))
+  if S.Flurry:IsCastable() and (not VarBoltSpam and (Icicles < 5 and (RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff) and (Player:PrevGCDP(1, Bolt) or Player:PrevGCDP(1, S.GlacialSpike)) or Player:BuffUp(S.ExcessFrostBuff)))) then
+    if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry st_ff 6"; end
   end
   -- glacial_spike,if=buff.icicles.react=5&(action.flurry.cooldown_react|remaining_winters_chill)
   if S.GlacialSpike:IsReady() and (Icicles == 5 and (S.Flurry:Charges() >= 1 or RemainingWintersChill > 0)) then
     if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike st_ff 8"; end
   end
-  -- ray_of_frost,if=remaining_winters_chill&(buff.icy_veins.remains<14|buff.spymasters_web.up)
-  if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and (Player:BuffRemains(S.IcyVeinsBuff) < 14 or Player:BuffUp(S.SpymastersWebBuff))) then
+  -- ray_of_frost,if=remaining_winters_chill&(!variable.boltspam|buff.icy_veins.remains<14|buff.spymasters_web.up)
+  if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and (not VarBoltSpam or Player:BuffRemains(S.IcyVeinsBuff) < 14 or Player:BuffUp(S.SpymastersWebBuff))) then
     if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost st_ff 10"; end
   end
-  -- frozen_orb
-  if S.FrozenOrb:IsCastable() then
+  -- frozen_orb,if=variable.boltspam|buff.fingers_of_frost.down
+  if S.FrozenOrb:IsCastable() and (VarBoltSpam or Player:BuffDown(S.FingersofFrostBuff)) then
     if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then return "frozen_orb st_ff 12"; end
   end
   -- shifting_power,if=(buff.icy_veins.down|!talent.deaths_chill)&cooldown.frozen_orb.remains>10&(!talent.comet_storm|cooldown.comet_storm.remains>10)&(!talent.ray_of_frost|cooldown.ray_of_frost.remains>10)
   if S.ShiftingPower:IsCastable() and ((Player:BuffDown(S.IcyVeinsBuff) or not S.DeathsChill:IsAvailable()) and S.FrozenOrb:CooldownRemains() > 10 and (not S.CometStorm:IsAvailable() or S.CometStorm:CooldownRemains() > 10) and (not S.RayofFrost:IsAvailable() or S.RayofFrost:CooldownRemains() > 10)) then
     if Cast(S.ShiftingPower, nil, Settings.CommonsDS.DisplayStyle.ShiftingPower, not Target:IsInRange(18)) then return "shifting_power st_ff 14"; end
   end
-  -- ice_lance,if=buff.excess_fire.react&remaining_winters_chill=2|remaining_winters_chill=0&debuff.winters_chill.down&buff.fingers_of_frost.react
-  if S.IceLance:IsReady() and (Player:BuffUp(S.ExcessFireBuff) and RemainingWintersChill == 2 or RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff) and Player:BuffUp(S.FingersofFrostBuff)) then
+  -- ice_lance,if=variable.boltspam&(buff.excess_fire.react&remaining_winters_chill=2|remaining_winters_chill=0&debuff.winters_chill.down&buff.fingers_of_frost.react)
+  if S.IceLance:IsReady() and (VarBoltSpam and (Player:BuffUp(S.ExcessFireBuff) and RemainingWintersChill == 2 or RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff) and Player:BuffUp(S.FingersofFrostBuff))) then
     if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance st_ff 16"; end
+  end
+  -- ice_lance,if=!variable.boltspam&(buff.fingers_of_frost.react&!prev_gcd.1.glacial_spike|remaining_winters_chill)
+  if S.IceLance:IsReady() and (not VarBoltSpam and (Player:BuffUp(S.FingersofFrostBuff) and not Player:PrevGCDP(1, S.GlacialSpike) or RemainingWintersChill > 0)) then
+    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance st_ff 18"; end
   end
   -- frostbolt
   if Bolt:IsCastable() then
-    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt st_ff 18"; end
+    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt st_ff 20"; end
   end
   -- call_action_list,name=movement
   if Player:IsMoving() then
@@ -600,25 +562,33 @@ local function STSS()
   if S.FrozenOrb:IsCastable() and (S.IcyVeins:CooldownRemains() > 22 or Player:BuffUp(S.IcyVeinsBuff)) then
     if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then return "frozen_orb st_ss 6"; end
   end
-  -- shifting_power,if=cooldown.icy_veins.remains>10&cooldown.flurry.remains&(fight_remains+10>cooldown.icy_veins.remains)
-  if CDsON() and S.ShiftingPower:IsCastable() and (S.IcyVeins:CooldownRemains() > 10 and S.Flurry:CooldownDown() and (FightRemains + 10 > S.IcyVeins:CooldownRemains())) then
-    if Cast(S.ShiftingPower, nil, Settings.CommonsDS.DisplayStyle.ShiftingPower, not Target:IsInRange(18)) then return "shifting_power st_ss 8"; end
+  -- glacial_spike,if=buff.icicles.react=5&(action.flurry.cooldown_react|remaining_winters_chill|cooldown.flurry.remains<action.glacial_spike.execute_time&cooldown.flurry.remains>0)
+  if S.GlacialSpike:IsReady() and (Icicles == 5 and (S.Flurry:CooldownUp() or RemainingWintersChill > 0 or S.Flurry:CooldownRemains() < S.GlacialSpike:ExecuteTime() and S.Flurry:CooldownDown())) then
+    if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike st_ss 8"; end
   end
-  -- glacial_spike,if=buff.icicles.react=5&(action.flurry.cooldown_react|remaining_winters_chill)
-  if S.GlacialSpike:IsReady() and (Icicles == 5 and (S.Flurry:Charges() >= 1 or RemainingWintersChill > 0)) then
-    if Cast(S.GlacialSpike, nil, nil, not Target:IsSpellInRange(S.GlacialSpike)) then return "glacial_spike st_ss 10"; end
+  -- ray_of_frost,if=variable.boltspam&remaining_winters_chill&buff.icy_veins.down
+  if S.RayofFrost:IsCastable() and (VarBoltSpam and RemainingWintersChill > 0 and Player:BuffDown(S.IcyVeinsBuff)) then
+    if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost st_ss 10"; end
   end
-  -- ray_of_frost,if=remaining_winters_chill&buff.icy_veins.down
-  if S.RayofFrost:IsCastable() and (RemainingWintersChill > 0 and Player:BuffDown(S.IcyVeinsBuff)) then
+  -- ray_of_frost,if=!variable.boltspam&remaining_winters_chill=1
+  if S.RayofFrost:IsCastable() and (not VarBoltSpam and RemainingWintersChill == 1) then
     if Cast(S.RayofFrost, Settings.Frost.GCDasOffGCD.RayOfFrost, nil, not Target:IsSpellInRange(S.RayofFrost)) then return "ray_of_frost st_ss 12"; end
   end
-  -- frostbolt,if=buff.icy_veins.remains>8&buff.deaths_chill.stack<8
-  if Bolt:IsCastable() and (Player:BuffRemains(S.IcyVeinsBuff) > 8 and Player:BuffStack(S.DeathsChillBuff) < 8) then
-    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt st_ss 14"; end
+  -- shifting_power,if=cooldown.icy_veins.remains>10&!action.flurry.cooldown_react&(variable.boltspam|buff.icy_veins.down|buff.icy_veins.remains>10)&(fight_remains+10>cooldown.icy_veins.remains)
+  if CDsON() and S.ShiftingPower:IsCastable() and (S.IcyVeins:CooldownRemains() > 10 and S.Flurry:CooldownDown() and (VarBoltSpam or Player:BuffDown(S.IcyVeinsBuff) or Player:BuffRemains(S.IcyVeinsBuff) > 10) and (FightRemains + 10 > S.IcyVeins:CooldownRemains())) then
+    if Cast(S.ShiftingPower, nil, Settings.CommonsDS.DisplayStyle.ShiftingPower, not Target:IsInRange(18)) then return "shifting_power st_ss 14"; end
   end
-  -- ice_lance,if=remaining_winters_chill=2|remaining_winters_chill&action.flurry.cooldown_react
-  if S.IceLance:IsReady() and (RemainingWintersChill == 2 or RemainingWintersChill > 0 and S.Flurry:CooldownUp()) then
-    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance st_ss 16"; end
+  -- frostbolt,if=variable.boltspam&buff.icy_veins.remains>8&buff.deaths_chill.stack<8
+  if Bolt:IsCastable() and (VarBoltSpam and Player:BuffRemains(S.IcyVeinsBuff) > 8 and Player:BuffStack(S.DeathsChillBuff) < 8) then
+    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt st_ss 16"; end
+  end
+  -- ice_lance,if=variable.boltspam&(remaining_winters_chill=2|remaining_winters_chill&action.flurry.cooldown_react)
+  if S.IceLance:IsReady() and (VarBoltSpam and (RemainingWintersChill == 2 or RemainingWintersChill > 0 and S.Flurry:CooldownUp())) then
+    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance st_ss 18"; end
+  end
+  -- ice_lance,if=!variable.boltspam&(buff.fingers_of_frost.react&!prev_gcd.1.glacial_spike|remaining_winters_chill)
+  if S.IceLance:IsReady() and (not VarBoltSpam and (Player:BuffUp(S.FingersofFrostBuff) and not Player:PrevGCDP(1, S.GlacialSpike) or RemainingWintersChill > 0)) then
+    if Cast(S.IceLance, nil, nil, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance st_ss 20"; end
   end
   -- frostbolt
   if Bolt:IsCastable() then
@@ -680,13 +650,14 @@ local function APL()
     -- call_action_list,name=cds
     -- Note: CDs() includes Trinkets/Items/Potion, so checking CDsON() within the function instead.
     local ShouldReturn = CDs(); if ShouldReturn then return ShouldReturn; end
+    -- Note: Using Splinterstorm lists if player is below level 70.
     -- run_action_list,name=aoe_ff,if=talent.frostfire_bolt&active_enemies>=4
     if AoEON() and (S.FrostfireBolt:IsAvailable() and EnemiesCount16ySplash >= 4) then
       local ShouldReturn = AoEFF(); if ShouldReturn then return ShouldReturn; end
       if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for AoeFF()"; end
     end
     -- run_action_list,name=aoe_ss,if=talent.splinterstorm&active_enemies>=3
-    if AoEON() and (S.Splinterstorm:IsAvailable() and EnemiesCount16ySplash >= 3) then
+    if AoEON() and ((S.Splinterstorm:IsAvailable() or Player:Level() < 71) and EnemiesCount16ySplash >= 3) then
       local ShouldReturn = AoESS(); if ShouldReturn then return ShouldReturn; end
       if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for AoeSS()"; end
     end
@@ -696,23 +667,20 @@ local function APL()
       if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for CleaveFF()"; end
     end
     -- run_action_list,name=cleave_ss,if=talent.splinterstorm&active_enemies=2
-    if AoEON() and (S.Splinterstorm:IsAvailable() and EnemiesCount16ySplash == 2) then
+    if AoEON() and ((S.Splinterstorm:IsAvailable() or Player:Level() < 71) and EnemiesCount16ySplash == 2) then
       local ShouldReturn = CleaveSS(); if ShouldReturn then return ShouldReturn; end
       if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for CleaveSS()"; end
     end
-    -- run_action_list,name=st_aoebuild,if=variable.st_aoebuild
-    if VarSTAoEBuild then
-      local ShouldReturn = STAoEBuild(); if ShouldReturn then return ShouldReturn; end
-      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for STAoEBuild()"; end
-    end
-    -- run_action_list,name=st_ff,if=variable.st_ff
-    if VarSTFF then
+    -- run_action_list,name=st_ff,if=talent.frostfire_bolt
+    if S.FrostfireBolt:IsAvailable() then
       local ShouldReturn = STFF(); if ShouldReturn then return ShouldReturn; end
       if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for STFF()"; end
     end
-    -- run_action_list,name=st_ss
-    local ShouldReturn = STSS(); if ShouldReturn then return ShouldReturn; end
-    if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for STSS()"; end
+    -- run_action_list,name=st_ss,if=talent.splinterstorm
+    if S.Splinterstorm:IsAvailable() or Player:Level() < 71 then
+      local ShouldReturn = STSS(); if ShouldReturn then return ShouldReturn; end
+      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for STSS()"; end
+    end
   end
 end
 
