@@ -106,6 +106,7 @@ Spell.Mage.Arcane = MergeTableByKey(Spell.Mage.Commons, {
   ArcaneSurge                           = Spell(365350),
   ArcaneTempo                           = Spell(383980),
   ArcingCleave                          = Spell(231564),
+  ChargedOrb                            = Spell(384651),
   Enlightened                           = Spell(321387),
   Evocation                             = Spell(12051),
   HighVoltage                           = Spell(461248),
