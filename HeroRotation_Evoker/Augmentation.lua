@@ -67,7 +67,6 @@ local FoMEmpowerMod = (S.FontofMagic:IsAvailable()) and 0.8 or 1
 local FlameAbility = S.ChronoFlames:IsLearned() and S.ChronoFlames or S.LivingFlame
 local BossFightRemains = 11111
 local FightRemains = 11111
-local VarEssenceBurstMaxStacks = 2
 local VarSpamHeal
 local VarMinOpenerDelay
 local VarOpenerDelay
@@ -679,21 +678,21 @@ local function APL()
       if Cast(S.TimeSkip, Settings.Augmentation.GCDasOffGCD.TimeSkip) then return "time_skip main 24"; end
     end
     -- emerald_blossom,if=talent.dream_of_spring&buff.essence_burst.up&(variable.spam_heal=2|variable.spam_heal=1&!buff.ancient_flame.up&talent.ancient_flame)&(buff.ebon_might_self.up|essence.deficit=0|buff.essence_burst.stack=buff.essence_burst.max_stack&cooldown.ebon_might.remains>4)
-    if S.EmeraldBlossom:IsReady() and (S.DreamofSpring:IsAvailable() and Player:BuffUp(S.EssenceBurstBuff) and (VarSpamHeal == 2 or VarSpamHeal == 1 and Player:BuffDown(S.AncientFlameBuff) and S.AncientFlame:IsAvailable()) and (Player:BuffUp(S.EbonMightSelfBuff) or Player:EssenceDeficit() == 0 or Player:BuffStack(S.EssenceBurstBuff) == VarEssenceBurstMaxStacks and S.EbonMight:CooldownRemains() > 4)) then
+    if S.EmeraldBlossom:IsReady() and (S.DreamofSpring:IsAvailable() and Player:BuffUp(S.EssenceBurstBuff) and (VarSpamHeal == 2 or VarSpamHeal == 1 and Player:BuffDown(S.AncientFlameBuff) and S.AncientFlame:IsAvailable()) and (Player:BuffUp(S.EbonMightSelfBuff) or Player:EssenceDeficit() == 0 or Player:EssenceBurst() == Player:MaxEssenceBurst() and S.EbonMight:CooldownRemains() > 4)) then
       if Cast(S.EmeraldBlossom, Settings.Augmentation.GCDasOffGCD.EmeraldBlossom) then return "emerald_blossom main 26"; end
     end
     -- living_flame,target_if=max:debuff.bombardments.remains,if=talent.mass_eruption&buff.mass_eruption_stacks.up&!buff.imminent_destruction.up&buff.essence_burst.stack<buff.essence_burst.max_stack&essence.deficit>1&(buff.ebon_might_self.remains>=6|cooldown.ebon_might.remains<=6)&debuff.bombardments.remains<action.eruption.execute_time&(talent.pupil_of_alexstrasza|active_enemies=1)
-    if S.LivingFlame:IsReady() and (S.MassEruption:IsAvailable() and Player:BuffUp(S.MassEruptionBuff) and Player:BuffDown(S.ImminentDestructionBuff) and Player:BuffStack(S.EssenceBurstBuff) < VarEssenceBurstMaxStacks and Player:EssenceDeficit() > 1 and (Player:BuffRemains(S.EbonMightSelfBuff) >= 6 or S.EbonMight:CooldownRemains() <= 6) and (S.PupilofAlexstrasza:IsAvailable() or EnemiesCount8ySplash == 1)) then
+    if S.LivingFlame:IsReady() and (S.MassEruption:IsAvailable() and Player:BuffUp(S.MassEruptionBuff) and Player:BuffDown(S.ImminentDestructionBuff) and Player:EssenceBurst() < Player:MaxEssenceBurst() and Player:EssenceDeficit() > 1 and (Player:BuffRemains(S.EbonMightSelfBuff) >= 6 or S.EbonMight:CooldownRemains() <= 6) and (S.PupilofAlexstrasza:IsAvailable() or EnemiesCount8ySplash == 1)) then
       if Everyone.CastTargetIf(S.LivingFlame, Enemies8ySplash, "max", EvaluateTargetIfFilterBombardments, EvaluateTargetIfLF, not Target:IsSpellInRange(S.LivingFlame)) then return "living_flame main 28"; end
     end
     -- azure_strike,target_if=max:debuff.bombardments.remains,if=talent.mass_eruption&buff.mass_eruption_stacks.up&!buff.imminent_destruction.up&buff.essence_burst.stack<buff.essence_burst.max_stack&essence.deficit>1&(buff.ebon_might_self.remains>=6|cooldown.ebon_might.remains<=6)&debuff.bombardments.remains<action.eruption.execute_time&(talent.echoing_strike&active_enemies>1)
     -- Note: CTI function is not a typo. Uses the same check as LF above.
-    if S.AzureStrike:IsReady() and (S.MassEruption:IsAvailable() and Player:BuffUp(S.MassEruptionBuff) and Player:BuffDown(S.ImminentDestructionBuff) and Player:BuffStack(S.EssenceBurstBuff) < VarEssenceBurstMaxStacks and Player:EssenceDeficit() > 1 and (Player:BuffRemains(S.EbonMightSelfBuff) >= 6 or S.EbonMight:CooldownRemains() <= 6) and (S.EchoingStrike:IsAvailable() and EnemiesCount8ySplash > 1)) then
+    if S.AzureStrike:IsReady() and (S.MassEruption:IsAvailable() and Player:BuffUp(S.MassEruptionBuff) and Player:BuffDown(S.ImminentDestructionBuff) and Player:EssenceBurst() < Player:MaxEssenceBurst() and Player:EssenceDeficit() > 1 and (Player:BuffRemains(S.EbonMightSelfBuff) >= 6 or S.EbonMight:CooldownRemains() <= 6) and (S.EchoingStrike:IsAvailable() and EnemiesCount8ySplash > 1)) then
       if Everyone.CastTargetIf(S.AzureStrike, Enemies8ySplash, "max", EvaluateTargetIfFilterBombardments, EvaluateTargetIfLF, not Target:IsSpellInRange(S.AzureStrike)) then return "azure_strike main 30"; end
     end
     -- eruption,target_if=min:debuff.bombardments.remains,if=(buff.ebon_might_self.remains>execute_time|essence.deficit=0|buff.essence_burst.stack=buff.essence_burst.max_stack&cooldown.ebon_might.remains>4)&!variable.pool_for_id
     -- Note: Ignoring target_if, as it will hit everything in the area of the primary target.
-    if S.Eruption:IsReady() and ((Player:BuffRemains(S.EbonMightSelfBuff) > S.Eruption:ExecuteTime() or Player:EssenceDeficit() == 0 or Player:BuffStack(S.EssenceBurstBuff) == VarEssenceBurstMaxStacks and S.EbonMight:CooldownRemains() > 4) and not VarPoolForID) then
+    if S.Eruption:IsReady() and ((Player:BuffRemains(S.EbonMightSelfBuff) > S.Eruption:ExecuteTime() or Player:EssenceDeficit() == 0 or Player:EssenceBurst() == Player:MaxEssenceBurst() and S.EbonMight:CooldownRemains() > 4) and not VarPoolForID) then
       if Cast(S.Eruption, nil, nil, not Target:IsInRange(25)) then return "eruption main 32"; end
     end
     -- blistering_scales,target_if=target.role.tank,if=!evoker.scales_up&buff.ebon_might_self.down
