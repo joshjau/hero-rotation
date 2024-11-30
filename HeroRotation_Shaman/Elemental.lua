@@ -327,7 +327,7 @@ local function Aoe()
     if Everyone.CastTargetIf(S.EarthShock, Enemies10ySplash, "min", EvaluateTargetIfFilterLightningRodRemains, nil, not Target:IsSpellInRange(S.EarthShock)) then return "earth_shock aoe 44"; end
   end
   -- icefury,if=talent.fusion_of_elements.enabled&!(buff.fusion_of_elements_nature.up|buff.fusion_of_elements_fire.up)&(cooldown.primordial_wave.remains<5|((spell_targets.chain_lightning=2|(!spell_targets.chain_lightning>=5&talent.echoes_of_great_sundering.enabled&!buff.echoes_of_great_sundering_eb.up))&talent.elemental_blast.enabled))
-  if S.Icefury:IsViable() and (S.FusionofElements:IsAvailable() and not (Player:BuffUp(S.FusionofElementsNature) or Player:BuffUp(S.FusionofElementsFire)) and (S.PrimordialWave:CooldownRemains() < 5 or ((Enemies10ySplash == 2 or (Enemies10ySplash < 5 and S.EchoesofGreatSundering:IsAvailable() and not Player:BuffUp(S.EchoesofGreatSunderingBuff))) and S.ElementalBlast:IsAvailable()))) then
+  if S.Icefury:IsViable() and (S.FusionofElements:IsAvailable() and not (Player:BuffUp(S.FusionofElementsNature) or Player:BuffUp(S.FusionofElementsFire)) and (S.PrimordialWave:CooldownRemains() < 5 or ((Shaman.ClusterTargets == 2 or (Shaman.ClusterTargets < 5 and S.EchoesofGreatSundering:IsAvailable() and not Player:BuffUp(S.EchoesofGreatSunderingBuff))) and S.ElementalBlast:IsAvailable()))) then
     if Cast(S.Icefury, nil, nil, not Target:IsSpellInRange(S.Icefury)) then return "icefury aoe 46"; end
   end
   -- lava_burst,target_if=dot.flame_shock.remains>2,if=talent.master_of_the_elements.enabled&!buff.master_of_the_elements.up&!buff.ascendance.up&talent.fire_elemental.enabled
