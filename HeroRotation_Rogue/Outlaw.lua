@@ -692,10 +692,8 @@ local function CDs ()
   end
 
   -- # Crackshot builds use stealth cooldowns if not already in stealth
-  -- actions.cds+=/call_action_list,name=stealth_cds,if=!stealthed.all&talent.crackshot&talent.underhanded_upper_hand
-  -- &talent.subterfuge&buff.escalating_blade.stack<4&buff.adrenaline_rush.up&variable.finish_condition
-  if not Player:StealthUp(true, true) and S.Crackshot:IsAvailable() and S.UnderhandedUpperhand:IsAvailable()
-    and S.Subterfuge:IsAvailable() and Player:BuffStack(S.EscalatingBlade) < 4 and Player:BuffUp(S.AdrenalineRush) and Finish_Condition() then
+  -- actions.cds+=/call_action_list,name=stealth_cds,if=!stealthed.all
+  if not Player:StealthUp(true, true) then
     ShouldReturn = StealthCDs()
     if ShouldReturn then
       return ShouldReturn

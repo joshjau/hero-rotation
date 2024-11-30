@@ -513,6 +513,8 @@ local function CDs ()
 
   -- actions.cds+=/flagellation,if=combo_points>=5|fight_remains<=25
   if HR.CDsON() and S.Flagellation:IsAvailable() and S.Flagellation:IsReady()
+    and (S.ShadowDance:IsReady() or Player:BuffUp(S.ShadowDanceBuff))
+    and (S.SymbolsofDeath:IsReady() or Player:BuffUp(S.SymbolsofDeath))
     and (S.ShadowBlades:IsReady() or Player:BuffUp(S.ShadowBlades)) then
     if ComboPoints >= 5 or HL.BossFilteredFightRemains("<=", 25) then
       if Cast(S.Flagellation, nil, Settings.CommonsDS.DisplayStyle.Flagellation, not Target:IsSpellInRange(S.Flagellation)) then
