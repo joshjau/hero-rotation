@@ -219,23 +219,24 @@ local function RtB_Reroll(ForceLoadedDice)
     else
       Cache.APLVar.RtB_Reroll = false
 
+      -- # Roll the bones if you have no buffs, or will lose no buffs by rolling. With Loaded Dice up, roll if you have
+      -- 1 buff or will lose at most 1 buff.
       -- roll_the_bones,if=rtb_buffs.will_lose<=buff.loaded_dice.up
-      Cache.APLVar.RtB_Reroll = Cache.APLVar.RtB_Buffs.Will_Lose.Total <= num(checkBuffWillLose(S.LoadedDiceBuff))
+      Cache.APLVar.RtB_Reroll = Cache.APLVar.RtB_Buffs.Will_Lose.Total <= num(Player:BuffUp(S.LoadedDiceBuff))
 
-      -- roll_the_bones,if=talent.keep_it_rolling&buff.loaded_dice.up&rtb_buffs<=2
+      -- # KIR builds can also roll with Loaded Dice up and at most 2 buffs in total
+      -- actions.cds+=/roll_the_bones,if=talent.keep_it_rolling&buff.loaded_dice.up&rtb_buffs<=2
       if not Cache.APLVar.RtB_Reroll then
         Cache.APLVar.RtB_Reroll = S.KeepItRolling:IsAvailable() and (Player:BuffUp(S.LoadedDiceBuff) or ForceLoadedDice) and Cache.APLVar.RtB_Buffs.Total <= 2
       end
 
-      -- roll_the_bones,if=talent.hidden_opportunity&buff.loaded_dice.up&(rtb_buffs.will_lose<=2)
-        -- &(!rtb_buffs.will_lose.broadside|buff.broadside.remains<11)
-        -- &(!rtb_buffs.will_lose.ruthless_precision|buff.ruthless_precision.remains<11)
-        -- &(!rtb_buffs.will_lose.true_bearing|buff.true_bearing.remains<11)
+      -- # HO builds can fish for good buffs by rerolling with 2 buffs and Loaded Dice up if those 2 buffs do not
+      -- contain either Broadside, Ruthless Precision or True Bearing
+      --actions.cds+=/roll_the_bones,if=talent.hidden_opportunity&buff.loaded_dice.up&rtb_buffs<=2&!buff.broadside.up
+      -- &!buff.ruthless_precision.up&!buff.true_bearing.up
       if not Cache.APLVar.RtB_Reroll then
-        Cache.APLVar.RtB_Reroll = S.HiddenOpportunity:IsAvailable() and (Player:BuffUp(S.LoadedDiceBuff) or ForceLoadedDice) and Cache.APLVar.RtB_Buffs.Will_Lose.Total <=2
-          and (not checkBuffWillLose(S.Broadside) or Player:BuffRemains(S.Broadside) < 11)
-          and (not checkBuffWillLose(S.RuthlessPrecision) or Player:BuffRemains(S.RuthlessPrecision) < 11)
-          and (not checkBuffWillLose(S.TrueBearing) or Player:BuffRemains(S.TrueBearing) < 11)
+        Cache.APLVar.RtB_Reroll = S.HiddenOpportunity:IsAvailable() and Player:BuffUp(S.LoadedDiceBuff) and Cache.APLVar.RtB_Buffs.Total <= 2
+          and not Player:BuffUp(S.Broadside) and not Player:BuffUp(S.RuthlessPrecision) and not Player:BuffUp(S.TrueBearing)
       end
     end
   end
@@ -728,10 +729,11 @@ local function CDs ()
     end
   end
 
-  -- # Use Keep it Rolling with any 4 buffs. If Broadside is not active, then wait until just before the lowest buff expires in an attempt to obtain it from Count the Odds.
-  -- actions.cds+=/keep_it_rolling,if=rtb_buffs>=4&(rtb_buffs.min_remains<1|buff.broadside.up|buff.true_bearing.up)
+  -- # Use Keep it Rolling with any 4 buffs, unless you only have one of Broadside, Ruthless Precision and True Bearing,
+  -- then wait until just before the lowest duration buff expires in an attempt to obtain another good buff from Count the Odds.
+  --actions.cds+=/keep_it_rolling,if=rtb_buffs>=4&(rtb_buffs.min_remains<1|(buff.broadside.up+buff.ruthless_precision.up+buff.true_bearing.up>=2))
   if S.KeepItRolling:IsReady() and Cache.APLVar.RtB_Buffs.Total >= 4
-    and (Cache.APLVar.RtB_Buffs.MinRemains < 3 or Player:BuffUp(S.Broadside) or Player:BuffUp(S.TrueBearing)) then
+    and (Cache.APLVar.RtB_Buffs.MinRemains < 1 or (num(Player:BuffUp(S.Broadside)) + num(Player:BuffUp(S.RuthlessPrecision)) + num(Player:BuffUp(S.TrueBearing)) >= 2)) then
     if Cast(S.KeepItRolling, Settings.Outlaw.GCDasOffGCD.KeepItRolling) then
       return "Cast Keep it Rolling"
     end
@@ -750,27 +752,10 @@ local function CDs ()
 
   -- # Roll the bones if you have no buffs, or will lose no buffs by rolling. With Loaded Dice up, roll if you have 1 buff or will lose at most 1 buff.
   if S.RolltheBones:IsReady() then
-    if Cache.APLVar.RtB_Buffs.Will_Lose.Total <= num(Player:BuffUp(S.LoadedDiceBuff)) then
+    if RtB_Reroll() or Cache.APLVar.RtB_Buffs.Total == 0 then
       if Cast(S.RolltheBones, Settings.Outlaw.GCDasOffGCD.RollTheBones) then
         return "Cast Roll the Bones"
       end
-    end
-  end
-
-  -- # KIR builds can also roll with Loaded Dice up and at most 2 buffs in total
-  -- actions.cds+=/roll_the_bones,if=talent.keep_it_rolling&buff.loaded_dice.up&rtb_buffs<=2
-  if S.RolltheBones:IsReady() and S.KeepItRolling:IsAvailable() and Player:BuffUp(S.LoadedDiceBuff) and Cache.APLVar.RtB_Buffs.Total <= 2 then
-    if Cast(S.RolltheBones, Settings.Outlaw.GCDasOffGCD.RolltheBones) then
-      return "Cast Roll the Bones"
-    end
-  end
-
-  -- # HO builds can fish for good buffs by rerolling with 2 buffs and Loaded Dice up if those 2 buffs do not contain either Broadside, Ruthless Precision or True Bearing
-  --actions.cds+=/roll_the_bones,if=talent.hidden_opportunity&buff.loaded_dice.up&rtb_buffs<=2&!buff.broadside.up&!buff.ruthless_precision.up&!buff.true_bearing.up
-  if S.RolltheBones:IsReady() and S.HiddenOpportunity:IsAvailable() and Player:BuffUp(S.LoadedDiceBuff) and Cache.APLVar.RtB_Buffs.Total <= 2
-    and not Player:BuffUp(S.Broadside) and not Player:BuffUp(S.RuthlessPrecision) and not Player:BuffUp(S.TrueBearing) then
-    if Cast(S.RolltheBones, Settings.Outlaw.GCDasOffGCD.RollTheBones) then
-      return "Cast Roll the Bones"
     end
   end
 
