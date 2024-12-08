@@ -231,7 +231,7 @@ end
 local function EvaluateTargetIfVoidBlastMain(TargetUnit)
   -- if=(dot.devouring_plague.remains>=execute_time|buff.entropic_rift.remains<=gcd.max|action.void_torrent.channeling&talent.void_empowerment)&(insanity.deficit>=16|cooldown.mind_blast.full_recharge_time<=gcd.max)&(!talent.mind_devourer|!buff.mind_devourer.up|buff.entropic_rift.remains<=gcd.max)
   -- Note: 2nd and 3rd parts handled before CastTargetIf.
-  return TargetUnit:DebuffRemains(S.DevouringPlagueDebuff) >= S.VoidBlast:ExecuteTime() or EntropicRiftRemains <= GCDMax or Player:IsChanneling(S.VoidTorrent) and S.VoidEmpowerment:IsAvailable()
+  return TargetUnit:DebuffRemains(S.DevouringPlagueDebuff) >= S.VoidBlast:ExecuteTime() or EntropicRiftRemains <= GCDMax or (Player:IsChanneling(S.VoidTorrent) or Player:PrevGCDP(1, S.VoidTorrent)) and S.VoidEmpowerment:IsAvailable()
 end
 
 local function EvaluateTargetIfVTMain(TargetUnit)
