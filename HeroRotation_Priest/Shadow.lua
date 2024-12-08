@@ -408,7 +408,7 @@ local function CDs()
   -- invoke_external_buff,name=bloodlust,if=buff.power_infusion.up&fight_remains<120|fight_remains<=40
   -- Note: Not handling external buffs
   -- halo,if=talent.power_surge&(pet.fiend.active&cooldown.fiend.remains>=4&talent.mindbender|!talent.mindbender&!cooldown.fiend.up|active_enemies>2&!talent.inescapable_torment|!talent.dark_ascension)&(cooldown.mind_blast.charges=0|!talent.void_eruption|cooldown.void_eruption.remains>=gcd.max*4)
-  if S.Halo:IsReady() and (Player:HeroTreeID() == 19 and (FiendUp and Fiend:CooldownRemains() >= 4 and S.Mindbender:IsAvailable() or not S.Mindbender:IsAvailable() and Fiend:CooldownDown() or EnemiesCount10ySplash > 2 and not S.InescapableTorment:IsAvailable() or not S.DarkAscension:IsAvailable()) and (S.MindBlast:Charges() == 0 or not S.VoidEruption:IsAvailable() or S.VoidEruption:CooldownRemains() >= GCDMax * 4)) then
+  if S.Halo:IsReady() and (S.PowerSurge:IsAvailable() and (FiendUp and Fiend:CooldownRemains() >= 4 and S.Mindbender:IsAvailable() or not S.Mindbender:IsAvailable() and Fiend:CooldownDown() or EnemiesCount10ySplash > 2 and not S.InescapableTorment:IsAvailable() or not S.DarkAscension:IsAvailable()) and (S.MindBlast:Charges() == 0 or not S.VoidEruption:IsAvailable() or S.VoidEruption:CooldownRemains() >= GCDMax * 4)) then
     if Cast(S.Halo, Settings.Shadow.GCDasOffGCD.Halo, nil, not Target:IsInRange(30)) then return "halo cds 20"; end
   end
   -- void_eruption,if=(pet.fiend.active&cooldown.fiend.remains>=4|!talent.mindbender&!cooldown.fiend.up|active_enemies>2&!talent.inescapable_torment)&(cooldown.mind_blast.charges=0|time>15)
@@ -586,7 +586,7 @@ local function Main()
     if Everyone.CastTargetIf(S.DevouringPlague, Enemies10ySplash, "max", EvaluateTargetIfFilterTTDTimesDP, EvaluateTargetIfDPMain, not Target:IsSpellInRange(S.DevouringPlague)) then return "devouring_plague main 16"; end
   end
   -- void_torrent,target_if=max:(dot.devouring_plague.remains*1000+target.time_to_die),if=(dot.devouring_plague.ticking|talent.void_eruption&cooldown.void_eruption.up)&talent.entropic_rift&!variable.holding_crash
-  if S.VoidTorrent:IsReady() and (Player:HeroTreeID() == 18 and not VarHoldingCrash) then
+  if S.VoidTorrent:IsCastable() and (S.EntropicRift:IsAvailable() and not VarHoldingCrash) then
     if Everyone.CastTargetIf(S.VoidTorrent, Enemies10ySplash, "max", EvaluateTargetIfFilterDPPlusTTD, EvaluateTargetIfVTMain, not Target:IsSpellInRange(S.VoidTorrent), Settings.Shadow.GCDasOffGCD.VoidTorrent) then return "void_torrent main 18"; end
   end
   -- shadow_word_death,target_if=max:(target.health.pct<=20)*100+dot.devouring_plague.ticking,if=talent.depth_of_shadows&(target.health.pct<=20|buff.deathspeaker.up&talent.deathspeaker)
@@ -607,7 +607,7 @@ local function Main()
   end
   -- vampiric_touch,target_if=min:remains,if=buff.unfurling_darkness.up&active_dot.vampiric_touch<=5
   if S.VampiricTouch:IsCastable() and (Player:BuffUp(S.UnfurlingDarknessBuff) and S.VampiricTouchDebuff:AuraActiveCount() <= 5) then
-    if Everyone.CastTargetIf(S.VampiricTouch, Enemies10ySplash, "min", EvaluateTargetIfFilterVTRemains, EvaluateTargetIfVTMain3, not Target:IsSpellInRange(S.VampiricTouch)) then return "vampiric_touch main 28"; end
+    if Everyone.CastTargetIf(S.VampiricTouch, Enemies10ySplash, "min", EvaluateTargetIfFilterVTRemains, nil, not Target:IsSpellInRange(S.VampiricTouch)) then return "vampiric_touch main 28"; end
   end
   -- call_action_list,name=empowered_filler,if=(buff.mind_spike_insanity.stack>2&talent.mind_spike|buff.mind_flay_insanity.stack>2&!talent.mind_spike)&talent.empowered_surges&!cooldown.void_eruption.up
   if (Player:BuffStack(S.MindSpikeInsanityBuff) > 2 and S.MindSpike:IsAvailable() or Player:BuffStack(S.MindFlayInsanityBuff) > 2 and not S.MindSpike:IsAvailable()) and S.EmpoweredSurges:IsAvailable() and S.VoidEruption:CooldownDown() then
@@ -626,7 +626,7 @@ local function Main()
     if Everyone.CastTargetIf(S.DevouringPlague, Enemies10ySplash, "max", EvaluateTargetIfFilterTTDTimesDP, nil, not Target:IsSpellInRange(S.DevouringPlague)) then return "devouring_plague main 32"; end
   end
   -- void_torrent,target_if=max:(dot.devouring_plague.remains*1000+target.time_to_die),if=!variable.holding_crash&!talent.entropic_rift,target_if=dot.devouring_plague.remains>=2.5
-  if S.VoidTorrent:IsCastable() then
+  if S.VoidTorrent:IsCastable() and (not VarHoldingCrash and not S.EntropicRift:IsAvailable()) then
     if Target:DebuffRemains(S.DevouringPlagueDebuff) >= 2.5 then
       if Cast(S.VoidTorrent, Settings.Shadow.GCDasOffGCD.VoidTorrent, nil, not Target:IsSpellInRange(S.VoidTorrent)) then return "void_torrent main 34 (primary target)"; end
     else
@@ -680,7 +680,7 @@ local function APL()
     FiendRemains = mathmax(15 - Fiend:TimeSinceLastCast(), 0)
 
     -- Check out Entropic Rift status
-    if Player:HeroTreeID() == 18 then
+    if S.EntropicRift:IsAvailable() then
       EntropicRiftUp = S.VoidTorrent:TimeSinceLastCast() <= 8
       EntropicRiftRemains = mathmax(8 - S.VoidTorrent:TimeSinceLastCast(), 0)
       PowerSurgeUp = false
