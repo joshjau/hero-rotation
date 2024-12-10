@@ -79,6 +79,7 @@ Spell.Priest.Archon = {
 
 Spell.Priest.Voidweaver = {
   -- Abilities
+  VoidBlastAbility            = Spell(450983),
   VoidWraithAbility           = Spell(451235),
   -- Talents
   DepthofShadows              = Spell(451308),
