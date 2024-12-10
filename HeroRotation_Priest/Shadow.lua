@@ -563,7 +563,7 @@ local function Main()
   end
   -- void_blast,target_if=max:(dot.devouring_plague.remains*1000+target.time_to_die),if=(dot.devouring_plague.remains>=execute_time|buff.entropic_rift.remains<=gcd.max|action.void_torrent.channeling&talent.void_empowerment)&(insanity.deficit>=16|cooldown.mind_blast.full_recharge_time<=gcd.max|buff.entropic_rift.remains<=gcd.max)&(!talent.mind_devourer|!buff.mind_devourer.up|buff.entropic_rift.remains<=gcd.max)
   if S.VoidBlastAbility:IsReady() and ((Player:InsanityDeficit() >= 16 or S.MindBlast:FullRechargeTime() <= GCDMax or EntropicRiftRemains <= GCDMax) and (not S.MindDevourer:IsAvailable() or Player:BuffDown(S.MindDevourerBuff) or EntropicRiftRemains <= GCDMax)) then
-    if Everyone.CastTargetIf(S.VoidBlast, Enemies10ySplash, "max", EvaluateTargetIfFilterDPPlusTTD, EvaluateTargetIfVoidBlastMain, not Target:IsSpellInRange(S.VoidBlast)) then return "void_blast main 10"; end
+    if Everyone.CastTargetIf(S.VoidBlast, Enemies10ySplash, "max", EvaluateTargetIfFilterDPPlusTTD, EvaluateTargetIfVoidBlastMain, not Target:IsSpellInRange(S.VoidBlastAbility)) then return "void_blast main 10"; end
   end
   -- devouring_plague,target_if=max:target.time_to_die*(dot.devouring_plague.remains<=gcd.max|variable.dr_force_prio|!talent.distorted_reality&variable.me_force_prio),if=buff.voidform.up&talent.perfected_form&buff.voidform.remains<=gcd.max&talent.void_eruption
   if S.DevouringPlague:IsReady() and (Player:BuffUp(S.VoidformBuff) and S.PerfectedForm:IsAvailable() and Player:BuffRemains(S.VoidformBuff) <= GCDMax and S.VoidEruption:IsAvailable()) then
