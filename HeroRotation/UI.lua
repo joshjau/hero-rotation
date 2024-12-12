@@ -447,7 +447,8 @@ function HR.LeftIconFrame:Init ()
 end
 
 -- Change Icon
-function HR.LeftIconFrame:ChangeIcon (Texture, Keybind)
+function HR.LeftIconFrame:ChangeIcon (Texture, Keybind, ID)
+  self.ID = ID
   -- Texture
   self.Texture:SetTexture(Texture)
   self.Texture:SetAllPoints(self)

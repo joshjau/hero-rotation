@@ -270,7 +270,7 @@ function HR.CastLeftCommon(Object)
   local Texture = HR.GetTexture(Object)
   local Keybind = not HR.GUISettings.General.HideKeyBinds and HL.Action.TextureHotKey(Texture)
   FlashIcon(Object)
-  HR.LeftIconFrame:ChangeIcon(Texture, Keybind)
+  HR.LeftIconFrame:ChangeIcon(Texture, Keybind, Object:ID())
   HR.CastLeftOffset = HR.CastLeftOffset + 1
   Object.LastDisplayTime = GetTime()
 end
