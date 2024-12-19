@@ -30,6 +30,7 @@ OldBMIsCastable = HL.AddCoreOverride("Spell.IsCastable",
 function (self, BypassRecovery, Range, AoESpell, ThisUnit, Offset)
   local BaseCheck = OldBMIsCastable(self, BypassRecovery, Range, AoESpell, ThisUnit, Offset)
   if self == SpellBM.SummonPet then
+    if Hunter.Pet.Status ~= 1 and Pet:IsActive() then Hunter.Pet.Status = 1 end
     return (Hunter.Pet.Status == 0 or Hunter.Pet.Status == 3) and not (Player:IsMounted() or Player:IsInVehicle()) and BaseCheck
   elseif self == SpellBM.RevivePet then
     return (Pet:IsDeadOrGhost() or Hunter.Pet.Status == 2 and Hunter.Pet.FeignGUID == 0) and not (Player:IsMounted() or Player:IsInVehicle()) and BaseCheck
