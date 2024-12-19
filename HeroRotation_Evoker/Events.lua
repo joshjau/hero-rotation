@@ -17,7 +17,34 @@ local GetTime = GetTime
 -- File Locals
 HR.Commons.Evoker = {}
 local Evoker = HR.Commons.Evoker
-Evoker.FirestormTracker = {}
+Evoker.Cache = {
+  EmpowerTimes = {},
+  BuffTracker = {
+    LastUpdate = 0,
+    EbonMight = 0,
+    EssenceBurst = 0,
+    ImminentDestruction = 0
+  },
+  SpellData = {
+    LastUpdate = 0,
+    FireBreathCD = 0,
+    UpheavalCD = 0,
+    EbonMightCD = 0,
+    BreathOfEonsCD = 0
+  }
+}
+
+-- Add cache reset function
+function Evoker.ResetCache()
+  wipe(Evoker.Cache.EmpowerTimes)
+  Evoker.Cache.BuffTracker.LastUpdate = 0
+  Evoker.Cache.SpellData.LastUpdate = 0
+end
+
+-- Register cache reset events
+HL:RegisterForEvent(function()
+  Evoker.ResetCache()
+end, "PLAYER_REGEN_ENABLED", "PLAYER_SPECIALIZATION_CHANGED")
 
 --- ============================ CONTENT ============================
 --- ======= NON-COMBATLOG =======
