@@ -569,13 +569,9 @@ end
 
 --- ===== APL Main =====
 local function APL()
-  Enemies25y = Player:GetEnemiesInRange(25)
-  Enemies8ySplash = Target:GetEnemiesInSplashRange(8)
-  if (AoEON()) then
-    EnemiesCount8ySplash = Target:GetEnemiesInSplashRangeCount(8)
-  else
-    EnemiesCount8ySplash = 1
-  end
+  -- Get cached enemy tables instead of creating new ones
+  local Enemies25y, Enemies8ySplash = UpdateEnemyTables()
+  local EnemiesCount8ySplash = (AoEON()) and #Enemies8ySplash or 1
 
   if Everyone.TargetIsValid() or Player:AffectingCombat() then
     -- Calculate fight_remains

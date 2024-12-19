@@ -17,33 +17,39 @@ local GetTime = GetTime
 -- File Locals
 HR.Commons.Evoker = {}
 local Evoker = HR.Commons.Evoker
-Evoker.Cache = {
-  EmpowerTimes = {},
-  BuffTracker = {
-    LastUpdate = 0,
-    EbonMight = 0,
-    EssenceBurst = 0,
-    ImminentDestruction = 0
-  },
-  SpellData = {
-    LastUpdate = 0,
-    FireBreathCD = 0,
-    UpheavalCD = 0,
-    EbonMightCD = 0,
-    BreathOfEonsCD = 0
-  }
+
+-- Pre-allocated tables for enemy tracking
+Evoker.Enemies = {
+  Melee = {},
+  Range8 = {},
+  Range25 = {},
+  Range40 = {},
+  LastUpdate = 0
 }
 
--- Add cache reset function
-function Evoker.ResetCache()
-  wipe(Evoker.Cache.EmpowerTimes)
-  Evoker.Cache.BuffTracker.LastUpdate = 0
-  Evoker.Cache.SpellData.LastUpdate = 0
+-- Pre-allocated tables for buff tracking
+Evoker.Buffs = {
+  EbonMight = {},
+  EssenceBurst = {},
+  LastUpdate = 0
+}
+
+-- Reset function to wipe tables instead of recreating
+function Evoker.ResetTables()
+  wipe(Evoker.Enemies.Melee)
+  wipe(Evoker.Enemies.Range8)
+  wipe(Evoker.Enemies.Range25)
+  wipe(Evoker.Enemies.Range40)
+  Evoker.Enemies.LastUpdate = 0
+  
+  wipe(Evoker.Buffs.EbonMight)
+  wipe(Evoker.Buffs.EssenceBurst)
+  Evoker.Buffs.LastUpdate = 0
 end
 
--- Register cache reset events
+-- Register events for table maintenance
 HL:RegisterForEvent(function()
-  Evoker.ResetCache()
+  Evoker.ResetTables()
 end, "PLAYER_REGEN_ENABLED", "PLAYER_SPECIALIZATION_CHANGED")
 
 --- ============================ CONTENT ============================
