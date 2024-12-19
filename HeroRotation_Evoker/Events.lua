@@ -34,21 +34,6 @@ Evoker.Buffs = {
   LastUpdate = 0
 }
 
--- Add optimized buff tracking
-Evoker.BuffTracker = {
-  LastUpdate = 0,
-  Buffs = {
-    EbonMight = { remains = 0, stacks = 0 },
-    EssenceBurst = { remains = 0, stacks = 0 },
-    ImminentDestruction = { remains = 0 },
-    TipTheScales = { remains = 0 }
-  },
-  Debuffs = {
-    TemporalWound = { remains = 0 },
-    Bombardments = { remains = 0 }
-  }
-}
-
 -- Reset function to wipe tables instead of recreating
 function Evoker.ResetTables()
   wipe(Evoker.Enemies.Melee)
@@ -153,35 +138,3 @@ HL:RegisterForCombatEvent(
       -- N/A
 
   --- End Combat Log Arguments
-
--- Update buff tracking function
-function Evoker.UpdateBuffs()
-  local now = GetTime()
-  if now - Evoker.BuffTracker.LastUpdate > 0.1 then
-    local Buffs = Evoker.BuffTracker.Buffs
-    local Debuffs = Evoker.BuffTracker.Debuffs
-    
-    -- Update buffs
-    Buffs.EbonMight.remains = Player:BuffRemains(S.EbonMightSelfBuff)
-    Buffs.EbonMight.stacks = Player:BuffStack(S.EbonMightSelfBuff)
-    Buffs.EssenceBurst.remains = Player:BuffRemains(S.EssenceBurstBuff)
-    Buffs.EssenceBurst.stacks = Player:BuffStack(S.EssenceBurstBuff)
-    Buffs.ImminentDestruction.remains = Player:BuffRemains(S.ImminentDestructionBuff)
-    Buffs.TipTheScales.remains = Player:BuffRemains(S.TipTheScalesBuff)
-    
-    -- Update debuffs
-    if Target:Exists() then
-      Debuffs.TemporalWound.remains = Target:DebuffRemains(S.TemporalWoundDebuff)
-      Debuffs.Bombardments.remains = Target:DebuffRemains(S.BombardmentsDebuff)
-    end
-    
-    Evoker.BuffTracker.LastUpdate = now
-  end
-end
-
--- Reset function
-function Evoker.ResetBuffTracker()
-  wipe(Evoker.BuffTracker.Buffs)
-  wipe(Evoker.BuffTracker.Debuffs)
-  Evoker.BuffTracker.LastUpdate = 0
-end
