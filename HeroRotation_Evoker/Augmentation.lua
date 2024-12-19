@@ -447,9 +447,9 @@ local function FB()
   local FBEmpower = 0
   if S.FireBreath:IsCastable() then
     -- Note: Using Player:EmpowerCastTime() in place of duration in the below lines. Intention seems to be whether we can get the spell off before Ebom Might ends.
-    if S.FontofMagic:IsAvailable() and (Player:BuffRemains(S.EbonMightSelfBuff) > Player:EmpowerCastTime(4) and (not S.MoltenEmbers:IsAvailable() or S.Upheaval:CooldownRemains() <= (20 + 4 * num(S.BlastFurnace:IsAvailable()) - 6 * 3)) or Player:BuffUp(S.TipTheScales) and Target:TimeToDie() > 4 then
+    if S.FontofMagic:IsAvailable() and (Player:BuffRemains(S.EbonMightSelfBuff) > Player:EmpowerCastTime(4) and (not S.MoltenEmbers:IsAvailable() or S.Upheaval:CooldownRemains() <= (20 + 4 * num(S.BlastFurnace:IsAvailable()) - 6 * 3)) or Player:BuffUp(S.TipTheScales)) and Target:TimeToDie() > 4 then
       FBEmpower = 4
-    elseif (Player:BuffRemains(S.EbonMightSelfBuff) > Player:EmpowerCastTime(3) or Player:BuffUp(S.TipTheScales) and not S.FontofMagic:IsAvailable() and (not S.MoltenEmbers:IsAvailable() or S.Upheaval:CooldownRemains() <= (20 + 4 * num(S.BlastFurnace:IsAvailable()) - 6 * 2)) and Target:TimeToDie() > 8 then
+    elseif (Player:BuffRemains(S.EbonMightSelfBuff) > Player:EmpowerCastTime(3) or Player:BuffUp(S.TipTheScales) and not S.FontofMagic:IsAvailable()) and (not S.MoltenEmbers:IsAvailable() or S.Upheaval:CooldownRemains() <= (20 + 4 * num(S.BlastFurnace:IsAvailable()) - 6 * 2)) and Target:TimeToDie() > 8 then
       FBEmpower = 3
     elseif Player:BuffRemains(S.EbonMightSelfBuff) > Player:EmpowerCastTime(2) and (not S.MoltenEmbers:IsAvailable() or S.Upheaval:CooldownRemains() <= (20 + 4 * num(S.BlastFurnace:IsAvailable()) - 6 * 1)) and Target:TimeToDie() > 12 then
       FBEmpower = 2
