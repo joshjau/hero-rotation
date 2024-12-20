@@ -100,6 +100,9 @@ OldMMBuffRemains = HL.AddCoreOverride("Player.BuffRemains",
   function(self, Spell, AnyCaster, Offset)
     if Spell == SpellMM.TrickShotsBuff and (Player:IsCasting(SpellMM.AimedShot) or Player:IsChanneling(SpellMM.RapidFire)) then
       return 0
+    elseif Spell == SpellMM.SteadyFocusBuff then
+      local BaseCheck = OldMMBuffRemains(self, Spell, AnyCaster, Offset)
+      return (Player:IsCasting(SpellMM.SteadyShot) and SpellMM.SteadyFocus:IsAvailable()) and 15 or BaseCheck
     else
       return OldMMBuffRemains(self, Spell, AnyCaster, Offset)
     end
@@ -128,9 +131,9 @@ HL.AddCoreOverride("Player.FocusP",
       elseif Player:IsChanneling(SpellMM.RapidFire) then
         return Focus + 7
       elseif Player:IsCasting(SpellMM.WailingArrow) then
-        return Focus - 15
+        return Player:BuffUp(SpellMM.TrueshotBuff) and Focus - 8 or Focus - 15
       elseif Player:IsCasting(SpellMM.AimedShot) then
-        return Focus - 35
+        return Player:BuffUp(SpellMM.TrueshotBuff) and Focus - 18 or Focus - 35
       end
     end
   end
