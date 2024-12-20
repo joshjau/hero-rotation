@@ -245,6 +245,8 @@ Spell.DeathKnight.Unholy = MergeTableByKey(Spell.DeathKnight.Commons, {
   DeathRotDebuff                        = Spell(377540),
   FesteringWoundDebuff                  = Spell(194310),
   RottenTouchDebuff                     = Spell(390276),
+  -- TWW2 Effects
+  WinningStreakBuff                     = Spell(1216813),
 })
 Spell.DeathKnight.Unholy = MergeTableByKey(Spell.DeathKnight.Unholy, Spell.DeathKnight.RideroftheApocalypse)
 Spell.DeathKnight.Unholy = MergeTableByKey(Spell.DeathKnight.Unholy, Spell.DeathKnight.Sanlayn)
