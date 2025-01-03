@@ -109,8 +109,7 @@ HR.GUISettings.APL.Monk = {
     PotionType = {
       Selected = "Tempered",
     },
-    -- Thresholds and Toggles
-    SpinningCraneKickThreshold = 4,  -- Default to 4 targets
+    -- Remove SpinningCraneKickThreshold
     RequireExpelHarmBuffs = true,    -- Whether to require buffs for Expel Harm
     ThunderFocusTeaWithExpelHarm = true, -- Use TFT with Expel Harm
     -- {Display GCD as OffGCD, ForceReturn}
@@ -161,8 +160,6 @@ CreateARPanelOptions(CP_Brewmaster, "APL.Monk.Brewmaster")
 
 -- Mistweaver
 CreateARPanelOptions(CP_Mistweaver, "APL.Monk.Mistweaver")
-CreatePanelOption("Slider", CP_Mistweaver, "APL.Monk.Mistweaver.SpinningCraneKickThreshold", {2, 8, 1}, 
-  "Spinning Crane Kick Threshold", "Set the minimum number of targets to use Spinning Crane Kick. Default: 4")
 CreatePanelOption("CheckButton", CP_Mistweaver, "APL.Monk.Mistweaver.RequireExpelHarmBuffs", 
   "Require Expel Harm Buffs", "If enabled, only suggest Expel Harm when Enveloping Mist, Renewing Mist and Chi Harmony buffs are active.")
 CreatePanelOption("CheckButton", CP_Mistweaver, "APL.Monk.Mistweaver.ThunderFocusTeaWithExpelHarm",

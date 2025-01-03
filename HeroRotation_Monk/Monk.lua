@@ -231,6 +231,7 @@ Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
   ChiBurst                             = Spell(123986),
   ChiWave                              = Spell(115098),
   ThunderFocusTea                      = Spell(116680),
+  CracklingJadeLightning               = Spell(117952),
   
   -- Talents
   ChiHarmony                           = Spell(391315),
@@ -243,6 +244,7 @@ Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
   CelestialConduit                     = Spell(392989),
   
   -- Buffs
+  TeachingsoftheMonasteryBuff          = Spell(202090),
   AncientConcordanceBuff               = Spell(389391),
   AwakenedJadefireBuff                 = Spell(388779),
   EnvelopingMistBuff                   = Spell(124682),

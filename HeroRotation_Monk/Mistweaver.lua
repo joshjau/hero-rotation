@@ -1,4 +1,9 @@
 --- ============================ HEADER ============================
+--- Mistweaver Monk DPS/Fistweaving Module
+--- Supports two modes based on CDs toggle:
+--- CDsON: Pure damage focus (4-stack rotation)
+--- CDsOFF: Fistweaving with healing focus (3-stack rotation)
+--- Built around proper stack management and Rising Sun Kick usage
 --- ======= LOCALIZE =======
 -- Addon
 local addonName, addonTable = ...
@@ -57,22 +62,107 @@ local function Precombat()
     end
   end
 
-  -- Chi Burst
-  if S.ChiBurst:IsCastable() and not Player:IsMoving() then
+  -- Chi Burst - Valuable pre-pull for both healing and damage
+  -- Try to hit multiple targets if possible
+  if S.ChiBurst:IsCastable() and not Player:IsMoving() and EnemiesCount5 >= 3 then
     if Cast(S.ChiBurst, nil, nil, not Target:IsInRange(40)) then return "chi_burst precombat"; end
   end
 
-  -- Chi Wave
+  -- Chi Wave - Consistent damage/healing that bounces
   if S.ChiWave:IsCastable() then
     if Cast(S.ChiWave, nil, nil, not Target:IsInRange(40)) then return "chi_wave precombat"; end
   end
 
-  -- Jadefire Stomp
+  -- Jadefire Stomp - Apply buffs before combat
   if S.JadefireStomp:IsReady() then
     if Cast(S.JadefireStomp, nil, nil, not Target:IsInRange(30)) then return "jadefire_stomp precombat"; end
   end
 
   return
+end
+
+local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
+  -- Fixed rotation without complex resets
+  -- Rising Sun Kick on CD
+  if S.RisingSunKick:IsReady() then
+    if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick pure_dps"; end
+  end
+
+  -- Touch of Death
+  if S.TouchofDeath:IsReady() then
+    if Cast(S.TouchofDeath, nil, nil, not Target:IsInMeleeRange(5)) then return "touch_of_death pure_dps"; end
+  end
+
+  -- Chi Wave
+  if S.ChiWave:IsReady() then
+    if Cast(S.ChiWave, nil, nil, not Target:IsInRange(40)) then return "chi_wave pure_dps"; end
+  end
+
+  -- Jadefire Stomp
+  if S.JadefireStomp:IsReady() then
+    if Cast(S.JadefireStomp, nil, nil, not Target:IsInRange(30)) then return "jadefire_stomp pure_dps"; end
+  end
+
+  -- Simple 4-stack Blackout Kick usage
+  if S.BlackoutKick:IsReady() and Player:BuffStack(S.TeachingsoftheMonasteryBuff) >= 4 then
+    if Cast(S.BlackoutKick, nil, nil, not Target:IsInMeleeRange(5)) then return "blackout_kick pure_dps"; end
+  end
+
+  -- Tiger Palm to build stacks
+  if S.TigerPalm:IsReady() and Player:BuffStack(S.TeachingsoftheMonasteryBuff) < 4 then
+    if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then return "tiger_palm pure_dps"; end
+  end
+
+  return false
+end
+
+local function FistweavingPriority()  -- Used when CDs OFF - Normal fistweaving
+  -- Rising Sun Kick - Core ability for HoT extension and Crane Style healing
+  -- Extends Renewing Mist duration and provides passive healing
+  if S.RisingSunKick:IsReady() then
+    if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave"; end
+  end
+
+  -- Chi Burst - Strong AoE healing/damage if can hit multiple allies
+  if S.ChiBurst:IsReady() and not Player:IsMoving() and EnemiesCount5 >= 3 then
+    if Cast(S.ChiBurst, nil, nil, not Target:IsInRange(40)) then return "chi_burst fistweave"; end
+  end
+
+  -- Chi Wave - Consistent healing that bounces between allies and enemies
+  if S.ChiWave:IsReady() then
+    if Cast(S.ChiWave, nil, nil, not Target:IsInRange(40)) then return "chi_wave fistweave"; end
+  end
+
+  -- Jadefire Stomp - Maintains important healing buffs
+  -- Keep Awakened Jadefire and Jadefire Teachings active
+  if S.JadefireStomp:IsReady() then
+    if Cast(S.JadefireStomp, nil, nil, not Target:IsInRange(30)) then return "jadefire_stomp fistweave"; end
+  end
+
+  -- Thunder Focus Tea - Use with healing abilities
+  if S.ThunderFocusTea:IsReady() then
+    if Cast(S.ThunderFocusTea, Settings.Mistweaver.OffGCDasOffGCD.ThunderFocusTea) then return "thunder_focus_tea fistweave"; end
+  end
+
+  -- Blackout Kick at 3 stacks
+  -- Each stack causes additional hits, providing more healing through Crane Style
+  if S.BlackoutKick:IsReady() and Player:BuffStack(S.TeachingsoftheMonasteryBuff) >= 3 then
+    if Cast(S.BlackoutKick, nil, nil, not Target:IsInMeleeRange(5)) then return "blackout_kick fistweave"; end
+  end
+
+  -- Tiger Palm to build stacks
+  -- Generates ToM stacks for enhanced healing through Blackout Kick
+  if S.TigerPalm:IsReady() and Player:BuffStack(S.TeachingsoftheMonasteryBuff) < 3 then
+    if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then return "tiger_palm fistweave"; end
+  end
+
+  -- Spinning Crane Kick for AoE healing
+  -- Only use in AoE situations where the healing is valuable
+  if S.SpinningCraneKick:IsReady() and EnemiesCount5 > 4 then
+    if Cast(S.SpinningCraneKick, nil, nil, not Target:IsInMeleeRange(8)) then return "spinning_crane_kick fistweave"; end
+  end
+
+  return false
 end
 
 local function APL()
@@ -84,72 +174,34 @@ local function APL()
     EnemiesCount5 = 1
   end
 
-  -- Out of Combat
+  -- Precombat
   if not Player:AffectingCombat() then
     local ShouldReturn = Precombat(); if ShouldReturn then return ShouldReturn; end
     return
   end
 
-  -- In Combat
+  -- Main Combat Rotation
   if Everyone.TargetIsValid() then
     -- Interrupts
     if Everyone.Interrupt(S.SpearHandStrike, Settings.CommonsOGCD.OffGCDasOffGCD.SpearHandStrike, false) then return "spear hand strike"; end
 
-    -- Touch of Death
-    if S.TouchofDeath:IsReady() then
-      if Cast(S.TouchofDeath, nil, nil, not Target:IsInMeleeRange(5)) then return "touch_of_death"; end
+    -- Choose priority based on CDs toggle
+    if CDsON() then
+      local ShouldReturn = PureDPSPriority(); if ShouldReturn then return ShouldReturn; end
+    else
+      local ShouldReturn = FistweavingPriority(); if ShouldReturn then return ShouldReturn; end
     end
 
-    -- Thunder Focus Tea (if CDs are enabled)
-    if CDsON() and Settings.Mistweaver.ThunderFocusTeaWithExpelHarm and S.ThunderFocusTea:IsReady() and (S.ExpelHarm:IsReady() or S.ExpelHarm:CooldownRemains() < 2) then
-      if Cast(S.ThunderFocusTea, Settings.Mistweaver.OffGCDasOffGCD.ThunderFocusTea) then return "thunder_focus_tea"; end
-    end
-
-    -- Chi Burst
-    if S.ChiBurst:IsReady() and not Player:IsMoving() then
-      if Cast(S.ChiBurst, nil, nil, not Target:IsInRange(40)) then return "chi_burst"; end
-    end
-
-    -- Chi Wave 
-    if S.ChiWave:IsReady() then
-      if Cast(S.ChiWave, nil, nil, not Target:IsInRange(40)) then return "chi_wave"; end
-    end
-
-    -- Celestial Conduit for AoE
-    if S.CelestialConduit:IsReady() and EnemiesCount5 > 1 then
-      if Cast(S.CelestialConduit, nil, nil, not Target:IsInRange(40)) then return "celestial_conduit"; end
-    end
-
-    -- Expel Harm with buffs
+    -- Shared low priority abilities regardless of mode
+    -- Expel Harm when buffs align
     if S.ExpelHarm:IsReady() and (not Settings.Mistweaver.RequireExpelHarmBuffs or 
       (Player:BuffUp(S.EnvelopingMistBuff) and Player:BuffUp(S.RenewingMistBuff) and Player:BuffUp(S.ChiHarmonyBuff))) then
       if Cast(S.ExpelHarm, nil, nil, not Target:IsInRange(20)) then return "expel_harm"; end
     end
 
-    -- Jadefire Stomp
-    if S.JadefireStomp:IsReady() then
-      if Cast(S.JadefireStomp, nil, nil, not Target:IsInRange(30)) then return "jadefire_stomp"; end
-    end
-
-    -- Spinning Crane Kick for AoE
-    if S.SpinningCraneKick:IsReady() and EnemiesCount5 >= Settings.Mistweaver.SpinningCraneKickThreshold then
-      if Cast(S.SpinningCraneKick, nil, nil, not Target:IsInMeleeRange(8)) then return "spinning_crane_kick"; end
-    end
-
-    -- Rising Sun Kick
-    if S.RisingSunKick:IsReady() then
-      if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick"; end
-    end
-
-    -- Alternate Blackout Kick/Tiger Palm for RSK reset chance
-    if Player:PrevGCD(1, S.BlackoutKick) then
-      if S.TigerPalm:IsReady() then
-        if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then return "tiger_palm alternating"; end
-      end
-    else
-      if S.BlackoutKick:IsReady() then
-        if Cast(S.BlackoutKick, nil, nil, not Target:IsInMeleeRange(5)) then return "blackout_kick alternating"; end
-      end
+    -- Crackling Jade Lightning when at range
+    if S.CracklingJadeLightning:IsReady() and not Target:IsInMeleeRange(5) and Target:IsInRange(40) then
+      if Cast(S.CracklingJadeLightning) then return "crackling_jade_lightning ranged"; end
     end
   end
 end
