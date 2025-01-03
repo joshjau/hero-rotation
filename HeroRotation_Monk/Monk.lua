@@ -220,6 +220,36 @@ Spell.Monk.Brewmaster = MergeTableByKey(Spell.Monk.Commons, {
 Spell.Monk.Brewmaster = MergeTableByKey(Spell.Monk.Brewmaster, Spell.Monk.MasterofHarmony)
 Spell.Monk.Brewmaster = MergeTableByKey(Spell.Monk.Brewmaster, Spell.Monk.ShadoPan)
 
+Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
+  -- Abilities
+  BlackoutKick                          = Spell(100784),
+  RisingSunKick                         = Spell(107428), 
+  SpinningCraneKick                     = Spell(101546),
+  TigerPalm                            = Spell(100780),
+  TouchofDeath                         = Spell(322109),
+  ExpelHarm                            = Spell(322101),
+  ChiBurst                             = Spell(123986),
+  ChiWave                              = Spell(115098),
+  ThunderFocusTea                      = Spell(116680),
+  
+  -- Talents
+  ChiHarmony                           = Spell(391315),
+  CraneStyle                           = Spell(391315), 
+  JadefireStomp                        = Spell(388193),
+  AncientConcordance                   = Spell(389391),
+  AncientTeachings                     = Spell(388023),
+  AwakenedJadefire                     = Spell(388779),
+  FatalTouch                           = Spell(394123),
+  CelestialConduit                     = Spell(392989),
+  
+  -- Buffs
+  AncientConcordanceBuff               = Spell(389391),
+  AwakenedJadefireBuff                 = Spell(388779),
+  EnvelopingMistBuff                   = Spell(124682),
+  RenewingMistBuff                     = Spell(119611),
+  ChiHarmonyBuff                       = Spell(391315),
+})
+
 -- Items
 if not Item.Monk then Item.Monk = {}; end
 Item.Monk.Commons = {

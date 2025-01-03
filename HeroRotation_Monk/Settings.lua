@@ -43,6 +43,7 @@ HR.GUISettings.APL.Monk = {
     -- {Display OffGCD as OffGCD, ForceReturn}
     OffGCDasOffGCD = {
       Racials = true,
+      SpearHandStrike = true,
     }
   },
   Brewmaster = {
@@ -103,6 +104,30 @@ HR.GUISettings.APL.Monk = {
       StormEarthAndFire = true,
     }
   },
+  Mistweaver = {
+    -- Add potion type settings
+    PotionType = {
+      Selected = "Tempered",
+    },
+    -- Thresholds and Toggles
+    SpinningCraneKickThreshold = 4,  -- Default to 4 targets
+    RequireExpelHarmBuffs = true,    -- Whether to require buffs for Expel Harm
+    ThunderFocusTeaWithExpelHarm = true, -- Use TFT with Expel Harm
+    -- {Display GCD as OffGCD, ForceReturn}
+    GCDasOffGCD = {
+      -- Abilities
+      TouchofDeath = true,
+      ExpelHarm = false,
+      ChiBurst = false,
+      ChiWave = false,
+    },
+    -- {Display OffGCD as OffGCD, ForceReturn}
+    OffGCDasOffGCD = {
+      -- Racials
+      -- Abilities
+      ThunderFocusTea = true,
+    }
+  },
 }
 
 HR.GUI.LoadSettingsRecursively(HR.GUISettings)
@@ -114,6 +139,7 @@ local CP_MonkDS = CreateChildPanel(CP_Monk, "Class DisplayStyles")
 local CP_MonkOGCD = CreateChildPanel(CP_Monk, "Class OffGCDs")
 local CP_Windwalker = CreateChildPanel(CP_Monk, "Windwalker")
 local CP_Brewmaster = CreateChildPanel(CP_Monk, "Brewmaster")
+local CP_Mistweaver = CreateChildPanel(CP_Monk, "Mistweaver")
 
 -- Monk
 CreateARPanelOptions(CP_Monk, "APL.Monk.Commons")
@@ -132,3 +158,12 @@ CreatePanelOption("Slider", CP_Windwalker, "APL.Monk.Windwalker.MotCMinTimeThres
 -- Brewmaster
 CreatePanelOption("Slider", CP_Brewmaster, "APL.Monk.Brewmaster.ExpelHarmHP", {1, 100, 1}, "Expel Harm HP Threshold", "Set the HP threshold for when to suggest Expel Harm.")
 CreateARPanelOptions(CP_Brewmaster, "APL.Monk.Brewmaster")
+
+-- Mistweaver
+CreateARPanelOptions(CP_Mistweaver, "APL.Monk.Mistweaver")
+CreatePanelOption("Slider", CP_Mistweaver, "APL.Monk.Mistweaver.SpinningCraneKickThreshold", {2, 8, 1}, 
+  "Spinning Crane Kick Threshold", "Set the minimum number of targets to use Spinning Crane Kick. Default: 4")
+CreatePanelOption("CheckButton", CP_Mistweaver, "APL.Monk.Mistweaver.RequireExpelHarmBuffs", 
+  "Require Expel Harm Buffs", "If enabled, only suggest Expel Harm when Enveloping Mist, Renewing Mist and Chi Harmony buffs are active.")
+CreatePanelOption("CheckButton", CP_Mistweaver, "APL.Monk.Mistweaver.ThunderFocusTeaWithExpelHarm",
+  "Thunder Focus Tea with Expel Harm", "If enabled, try to sync Thunder Focus Tea with Expel Harm for increased damage.")
