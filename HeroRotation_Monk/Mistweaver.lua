@@ -54,12 +54,17 @@ local Settings = {
 
 -- Add this function before APL()
 local function Precombat()
-  -- Potion
+  -- Snapshot stats and use consumables
   if Settings.Commons.Enabled.Potions then
     local PotionSelected = Everyone.PotionSelected()
     if PotionSelected and PotionSelected:IsReady() then
       if Cast(PotionSelected, nil, Settings.CommonsDS.DisplayStyle.Potions) then return "potion precombat"; end
     end
+  end
+
+  -- Racial abilities pre-combat
+  if S.BloodFury:IsCastable() then
+    if Cast(S.BloodFury, Settings.Commons.OffGCDasOffGCD.Racials) then return "blood_fury precombat"; end
   end
 
   -- Chi Burst - Valuable pre-pull for both healing and damage
@@ -82,6 +87,27 @@ local function Precombat()
 end
 
 local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
+  -- Invoke Chi-ji/Yu'lon
+  if S.InvokeChiJi:IsReady() and S.InvokersDelight:IsAvailable() then
+    if Cast(S.InvokeChiJi) then return "invoke_chiji pure_dps"; end
+  end
+  if S.InvokeYulon:IsReady() and S.InvokersDelight:IsAvailable() then
+    if Cast(S.InvokeYulon) then return "invoke_yulon pure_dps"; end
+  end
+
+  -- Celestial Conduit
+  if S.CelestialConduit:IsReady() then
+    if Cast(S.CelestialConduit) then return "celestial_conduit pure_dps"; end
+  end
+
+  -- Thunder Focus Tea + Rising Sun Kick combo
+  if S.ThunderFocusTea:IsReady() then
+    if Cast(S.ThunderFocusTea, Settings.Mistweaver.OffGCDasOffGCD.ThunderFocusTea) then return "thunder_focus_tea pure_dps"; end
+  end
+  if S.RisingSunKick:IsReady() and S.SecretInfusion:IsAvailable() and Player:BuffUp(S.ThunderFocusTeaBuff) then
+    if Cast(S.RisingSunKick) then return "rising_sun_kick pure_dps tft"; end
+  end
+
   -- Fixed rotation without complex resets
   -- Rising Sun Kick on CD
   if S.RisingSunKick:IsReady() then
@@ -117,6 +143,23 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
 end
 
 local function FistweavingPriority()  -- Used when CDs OFF - Normal fistweaving
+  -- Dance of Chi-ji proc
+  if S.SpinningCraneKick:IsReady() and Player:BuffUp(S.DanceofChijiBuff) then
+    if Cast(S.SpinningCraneKick) then return "spinning_crane_kick dance_proc"; end
+  end
+
+  -- Chi Burst in AoE
+  if S.ChiBurst:IsReady() and not Player:IsMoving() and EnemiesCount5 >= 2 then
+    if Cast(S.ChiBurst) then return "chi_burst aoe"; end
+  end
+
+  -- Jadefire Stomp logic
+  if S.JadefireStomp:IsReady() then
+    if (EnemiesCount5 >= 4 and EnemiesCount5 <= 10) or Player:BuffDown(S.JadefireStompBuff) then
+      if Cast(S.JadefireStomp) then return "jadefire_stomp"; end
+    end
+  end
+
   -- Rising Sun Kick - Core ability for HoT extension and Crane Style healing
   -- Extends Renewing Mist duration and provides passive healing
   if S.RisingSunKick:IsReady() then
