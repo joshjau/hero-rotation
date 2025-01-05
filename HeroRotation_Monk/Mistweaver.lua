@@ -29,6 +29,14 @@ local CDsON     = HR.CDsON
 
 -- Spells
 local S = Spell.Monk.Mistweaver
+-- Add these new spells
+S.InvokeChiJi             = Spell(325197)
+S.InvokeYulon             = Spell(322118)
+S.InvokersDelight         = Spell(388661)
+S.SecretInfusion         = Spell(388491)
+S.ThunderFocusTeaBuff    = Spell(116680)
+S.DanceofChijiBuff       = Spell(325202)
+S.JadefireStompBuff      = Spell(388663)
 
 -- Items
 local I = Item.Monk.Mistweaver
