@@ -255,6 +255,11 @@ Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
   -- Important Buffs to Track
   TeachingsoftheMonasteryBuff          = Spell(202090),   -- Track for RSK resets
   JadeEmpowermentBuff                  = Spell(467317),   -- From TFT, empowers CJL
+  
+  -- Chi-ji Related
+  InvokeChiJi                          = Spell(325197),   -- The Red Crane cooldown
+  InvokeChiJiBuff                      = Spell(343820),   -- Active buff when Chi-ji is summoned
+  EnvelopingBreathBuff                 = Spell(343819),   -- Stacks from kicks during Chi-ji
 })
 
 -- Items

@@ -208,6 +208,33 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
 end
 
 local function FistweavingPriority()  -- Used when CDs OFF - Optimized for DPS healing
+  -- When Chi-ji is active, optimize kick usage for stacks
+  if Player:BuffUp(S.InvokeChiJiBuff) then
+    -- Rising Sun Kick priority remains high
+    if S.RisingSunKick:IsReady() then
+      if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick chiji"; end
+    end
+
+    -- Blackout Kick usage during Chi-ji
+    -- Only stack to 2 for optimal bird stack generation
+    if S.BlackoutKick:IsReady() then
+      local tomStacks = Player:BuffStack(S.TeachingsoftheMonasteryBuff)
+      if tomStacks <= 2 then
+        if Cast(S.BlackoutKick, nil, nil, not Target:IsInMeleeRange(5)) then return "blackout_kick chiji"; end
+      end
+    end
+
+    -- Tiger Palm during Chi-ji - only build to 2 stacks
+    if S.TigerPalm:IsReady() and Player:BuffStack(S.TeachingsoftheMonasteryBuff) < 2 then
+      if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then return "tiger_palm chiji"; end
+    end
+
+    -- Spinning Crane Kick during Chi-ji for additional stacks
+    if S.SpinningCraneKick:IsReady() and EnemiesCount5 >= 3 then
+      if Cast(S.SpinningCraneKick) then return "spinning_crane_kick chiji"; end
+    end
+  end
+
   -- Touch of Death - Highest priority
   -- Important for both burst damage and healing through Ancient Teachings
   if S.TouchofDeath:IsReady() then
