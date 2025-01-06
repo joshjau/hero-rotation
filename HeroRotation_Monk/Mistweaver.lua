@@ -43,6 +43,10 @@ S.TeachingsoftheMonasteryBuff = Spell(202090)
 S.JadeFireTeachings      = Spell(388023)
 S.CraneStyle             = Spell(383999)
 S.PoolofMists            = Spell(388477)
+S.JadeEmpowerment          = Spell(467317)
+S.AncientTeachings         = Spell(388023)
+S.CracklingJadeLightning   = Spell(117952)
+S.JadeEmpowermentBuff      = Spell(467317)
 
 -- Items
 local I = Item.Monk.Mistweaver
@@ -65,6 +69,17 @@ local Settings = {
   CommonsDS = HR.GUISettings.APL.Monk.CommonsDS,
   Mistweaver = HR.GUISettings.APL.Monk.Mistweaver
 }
+
+-- Add this helper function at the top
+local function CanChannelCJL()
+  local isReady = S.CracklingJadeLightning:IsReady()
+  local notMoving = not Player:IsMoving()
+  local inRange = Target:IsInRange(40)
+  local hasEnergy = Player:Energy() >= 20
+  local notChanneling = not Player:IsChanneling()
+
+  return isReady and notMoving and inRange and hasEnergy and notChanneling
+end
 
 -- Add this function before APL()
 local function Precombat()
@@ -100,6 +115,36 @@ local function Precombat()
 end
 
 local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
+  -- Crackling Jade Lightning with Jade Empowerment - Only in AoE 4+ targets
+  if S.CracklingJadeLightning:IsReady() and Player:BuffUp(S.JadeEmpowermentBuff) and EnemiesCount5 >= 4 then
+    if Cast(S.CracklingJadeLightning, nil, nil, not Target:IsSpellInRange(S.CracklingJadeLightning)) then 
+      return "crackling_jade_lightning empowered aoe"; 
+    end
+  end
+
+  -- Debug print at start of function
+  if Player:BuffUp(S.JadeEmpowerment) then
+    HR.Print("Jade Empowerment is UP!")
+    -- Add more debug info
+    HR.Print("CJL Ready: " .. tostring(S.CracklingJadeLightning:IsReady()))
+    HR.Print("Can Channel: " .. tostring(CanChannelCJL()))
+    HR.Print("Enemy Count: " .. tostring(EnemiesCount5))
+  end
+
+  -- Thunder Focus Tea optimization
+  -- Use with RSK if conditions align, otherwise save for Renewing Mist
+  if S.ThunderFocusTea:IsReady() then
+    -- Use with RSK if:
+    -- 1. RSK cooldown is significant (>9s)
+    -- 2. We don't need to save it for Renewing Mist
+    -- 3. Secret Infusion talent consideration
+    if S.RisingSunKick:CooldownRemains() > 9 
+       and (not Player:BuffUp(S.RenewingMistBuff) or Player:BuffRemains(S.RenewingMistBuff) > 8)
+       and (not S.SecretInfusion:IsAvailable() or Player:HasTier(31, 2)) then
+      if Cast(S.ThunderFocusTea, Settings.Mistweaver.OffGCDasOffGCD.ThunderFocusTea) then return "thunder_focus_tea for_rsk"; end
+    end
+  end
+
   -- Invoke Chi-ji/Yu'lon
   if S.InvokeChiJi:IsReady() and S.InvokersDelight:IsAvailable() then
     if Cast(S.InvokeChiJi) then return "invoke_chiji pure_dps"; end
@@ -167,26 +212,34 @@ local function FistweavingPriority()  -- Used when CDs OFF - Optimized for DPS h
     if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave"; end
   end
 
-  -- Thunder Focus Tea optimization
-  -- Use with RSK if conditions align, otherwise save for Renewing Mist
-  if S.ThunderFocusTea:IsReady() then
-    -- Use with RSK if:
-    -- 1. RSK cooldown is significant (>9s)
-    -- 2. We don't need to save it for Renewing Mist
-    -- 3. Secret Infusion talent consideration
-    if S.RisingSunKick:CooldownRemains() > 9 
-       and (not Player:BuffUp(S.RenewingMistBuff) or Player:BuffRemains(S.RenewingMistBuff) > 8)
-       and (not S.SecretInfusion:IsAvailable() or Player:HasTier(31, 2)) then
-      if Cast(S.ThunderFocusTea, Settings.Mistweaver.OffGCDasOffGCD.ThunderFocusTea) then return "thunder_focus_tea for_rsk"; end
+  -- Blackout Kick for RSK resets
+  if S.BlackoutKick:IsReady() then
+    local rskCD = S.RisingSunKick:CooldownRemains()
+    local tomStacks = Player:BuffStack(S.TeachingsoftheMonasteryBuff)
+    if (tomStacks >= 3 and rskCD > 3) or (rskCD > Player:GCD() * 2) then
+      if Cast(S.BlackoutKick, nil, nil, not Target:IsInMeleeRange(5)) then 
+        if S.RisingSunKick:IsReady() then
+          if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave reset"; end
+        end
+        return "blackout_kick fistweave"; 
+      end
     end
   end
 
-  -- Expel Harm with buff conditions
-  if S.ExpelHarm:IsReady() and Player:BuffUp(S.EnvelopingMistBuff) 
-     and Player:BuffUp(S.RenewingMistBuff) and Player:BuffUp(S.ChiHarmonyBuff) then
-    if Cast(S.ExpelHarm, nil, nil, not Target:IsInRange(20)) then return "expel_harm fistweave"; end
+  -- Tiger Palm for RSK resets and stack building
+  if S.TigerPalm:IsReady() then
+    local rskCD = S.RisingSunKick:CooldownRemains()
+    if Player:BuffStack(S.TeachingsoftheMonasteryBuff) < 3 or rskCD > Player:GCD() then
+      if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then 
+        if S.RisingSunKick:IsReady() then
+          if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave reset"; end
+        end
+        return "tiger_palm fistweave"; 
+      end
+    end
   end
 
+  -- Lower priority abilities
   -- Jadefire Stomp for buffs
   if S.JadefireStomp:IsReady() and (Player:BuffDown(S.AncientConcordanceBuff) or Player:BuffDown(S.AwakenedJadefireBuff)) then
     if Cast(S.JadefireStomp, nil, nil, not Target:IsInRange(30)) then return "jadefire_stomp fistweave"; end
@@ -197,47 +250,9 @@ local function FistweavingPriority()  -- Used when CDs OFF - Optimized for DPS h
     if Cast(S.ChiBurst, nil, nil, not Target:IsInRange(40)) then return "chi_burst aoe"; end
   end
 
-  -- Spinning Crane Kick in AoE
-  if S.SpinningCraneKick:IsReady() and (EnemiesCount5 >= 4 or Player:BuffUp(S.DanceofChijiBuff)) then
+  -- Spinning Crane Kick only in heavy AoE situations
+  if S.SpinningCraneKick:IsReady() and EnemiesCount5 >= 5 then
     if Cast(S.SpinningCraneKick) then return "spinning_crane_kick aoe"; end
-  end
-
-  -- Optimized Blackout Kick usage
-  -- 1. Don't waste high stacks when RSK is coming off CD soon
-  -- 2. Use for RSK reset chance when appropriate
-  -- 3. Maintain healing through Crane Style/other talents
-  if S.BlackoutKick:IsReady() then
-    local rskCD = S.RisingSunKick:CooldownRemains()
-    local tomStacks = Player:BuffStack(S.TeachingsoftheMonasteryBuff)
-    -- Use high stacks when RSK isn't coming off CD soon
-    if (tomStacks >= 3 and rskCD > 3) or 
-       -- Or use for reset chance if RSK is on significant CD
-       (rskCD > Player:GCD() * 2) then
-      if Cast(S.BlackoutKick, nil, nil, not Target:IsInMeleeRange(5)) then 
-        -- Check for RSK reset
-        if S.RisingSunKick:IsReady() then
-          if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave reset"; end
-        end
-        return "blackout_kick fistweave"; 
-      end
-    end
-  end
-
-  -- Tiger Palm
-  -- 1. Build ToM stacks
-  -- 2. Chance to reset RSK
-  -- 3. Maintain healing through various talents
-  if S.TigerPalm:IsReady() then
-    local rskCD = S.RisingSunKick:CooldownRemains()
-    if Player:BuffStack(S.TeachingsoftheMonasteryBuff) < 3 or rskCD > Player:GCD() then
-      if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then 
-        -- Check for RSK reset
-        if S.RisingSunKick:IsReady() then
-          if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave reset"; end
-        end
-        return "tiger_palm fistweave"; 
-      end
-    end
   end
 
   return false
@@ -277,14 +292,19 @@ local function APL()
       if Cast(S.ExpelHarm, nil, nil, not Target:IsInRange(20)) then return "expel_harm"; end
     end
 
-    -- Crackling Jade Lightning when at range
-    if S.CracklingJadeLightning:IsReady() and not Target:IsInMeleeRange(5) and Target:IsInRange(40) then
-      if Cast(S.CracklingJadeLightning) then return "crackling_jade_lightning ranged"; end
-    end
+    -- Remove ranged CJL usage to save it for empowered AoE only
   end
 end
 
 local function Init()
+  -- Register spell effects
+  S.CracklingJadeLightning:RegisterInFlight()
+  S.CracklingJadeLightning:RegisterInFlightEffect(117952)
+  
+  -- Register buff tracking
+  S.JadeEmpowermentBuff:RegisterAuraTracking()
+  S.TeachingsoftheMonasteryBuff:RegisterAuraTracking()
+  
   HR.Print("Mistweaver Monk rotation has been initialized")
 end
 

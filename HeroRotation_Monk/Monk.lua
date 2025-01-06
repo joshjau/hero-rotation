@@ -84,6 +84,8 @@ Spell.Monk.Commons = {
   DampenHarmBuff                        = Spell(122278),
   PressurePointBuff                     = Spell(393053),
   RushingJadeWindBuff                   = Spell(116847),
+  JadeEmpowerment          = Spell(467317),
+  JadeEmpowermentBuff      = Spell(467317),
   -- Debuffs
   -- Item Effects
   CalltoDominanceBuff                   = Spell(403380), -- Neltharion trinket buff
@@ -250,6 +252,7 @@ Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
   EnvelopingMistBuff                   = Spell(124682),
   RenewingMistBuff                     = Spell(119611),
   ChiHarmonyBuff                       = Spell(391315),
+  JadeEmpowermentBuff      = Spell(467317),
 })
 
 -- Items
@@ -274,3 +277,11 @@ Item.Monk.Windwalker = MergeTableByKey(Item.Monk.Commons, {
 
 Item.Monk.Brewmaster = MergeTableByKey(Item.Monk.Commons, {
 })
+
+-- Register spell effects
+HL:RegisterForEvent(function()
+  -- ... existing registrations ...
+  
+  -- Register Mistweaver channeled spells
+  Spell.Monk.Mistweaver.CracklingJadeLightning:RegisterInFlight()
+end, "PLAYER_LOGIN")
