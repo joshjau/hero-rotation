@@ -83,6 +83,9 @@ HL.AddCoreOverride("Player.IsChanneling",
 local MWOldBuffUp
 MWOldBuffUp = HL.AddCoreOverride("Player.BuffUp",
   function(self, Spell, AnyCaster, Offset)
+    -- Add nil check for Spell
+    if not Spell then return false end
+    
     -- Special handling for Jade Empowerment buff detection
     if Spell == SpellMW.JadeEmpowermentBuff then
       local name = AuraUtil.FindAuraByName(Spell:Name(), "player", "HELPFUL")
@@ -97,6 +100,9 @@ MWOldBuffUp = HL.AddCoreOverride("Player.BuffUp",
 local MWOldBuffStack
 MWOldBuffStack = HL.AddCoreOverride("Player.BuffStack",
   function(self, Spell, AnyCaster, Offset)
+    -- Add nil check for Spell
+    if not Spell then return 0 end
+    
     if Spell == SpellMW.JadeEmpowermentBuff then
       local name, _, count = AuraUtil.FindAuraByName(Spell:Name(), "player", "HELPFUL")
       return count or 0
@@ -110,6 +116,9 @@ MWOldBuffStack = HL.AddCoreOverride("Player.BuffStack",
 local MWOldBuffRemains
 MWOldBuffRemains = HL.AddCoreOverride("Player.BuffRemains", 
   function(self, Spell, AnyCaster, Offset)
+    -- Add nil check for Spell
+    if not Spell then return 0 end
+    
     if Spell == SpellMW.JadeEmpowermentBuff then
       local name, _, _, _, duration, expirationTime = AuraUtil.FindAuraByName(Spell:Name(), "player", "HELPFUL")
       if name then
