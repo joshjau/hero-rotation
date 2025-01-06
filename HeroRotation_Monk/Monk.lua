@@ -260,6 +260,11 @@ Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
   InvokeChiJi                          = Spell(325197),   -- The Red Crane cooldown
   InvokeChiJiBuff                      = Spell(343820),   -- Active buff when Chi-ji is summoned
   EnvelopingBreathBuff                 = Spell(343819),   -- Stacks from kicks during Chi-ji
+  
+  -- Celestial Conduit related
+  CelestialConduit                    = Spell(443028),   -- Celestial Conduit ability
+  HeartoftheJadeSerpentBuff           = Spell(456368),   -- Heart of the Jade Serpent buff
+  HeartoftheJadeSerpentCDRBuff        = Spell(443421),   -- CDR buff from Heart of the Jade Serpent
 })
 
 -- Items
