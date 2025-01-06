@@ -122,15 +122,6 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
     end
   end
 
-  -- Debug print at start of function
-  if Player:BuffUp(S.JadeEmpowerment) then
-    HR.Print("Jade Empowerment is UP!")
-    -- Add more debug info
-    HR.Print("CJL Ready: " .. tostring(S.CracklingJadeLightning:IsReady()))
-    HR.Print("Can Channel: " .. tostring(CanChannelCJL()))
-    HR.Print("Enemy Count: " .. tostring(EnemiesCount5))
-  end
-
   -- Thunder Focus Tea optimization
   -- Use with RSK if conditions align, otherwise save for Renewing Mist
   if S.ThunderFocusTea:IsReady() then
