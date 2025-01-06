@@ -197,6 +197,21 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
     if Cast(S.TigerPalm, nil, nil, not Target:IsInMeleeRange(5)) then return "tiger_palm pure_dps"; end
   end
 
+  -- Jadefire Stomp for buffs
+  if S.JadefireStomp:IsReady() and (Player:BuffDown(S.AncientConcordanceBuff) or Player:BuffDown(S.AwakenedJadefireBuff)) then
+    if Cast(S.JadefireStomp, nil, nil, not Target:IsInRange(30)) then return "jadefire_stomp pure_dps"; end
+  end
+
+  -- Chi Burst in AoE
+  if S.ChiBurst:IsReady() and not Player:IsMoving() and EnemiesCount5 >= 2 then
+    if Cast(S.ChiBurst, nil, nil, not Target:IsInRange(40)) then return "chi_burst aoe pure_dps"; end
+  end
+
+  -- Spinning Crane Kick in AoE
+  if S.SpinningCraneKick:IsReady() and (EnemiesCount5 >= 4 or Player:BuffUp(S.DanceofChijiBuff)) then
+    if Cast(S.SpinningCraneKick) then return "spinning_crane_kick aoe pure_dps"; end
+  end
+
   return false
 end
 
