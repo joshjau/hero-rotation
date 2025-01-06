@@ -1,9 +1,10 @@
 --- ============================ HEADER ============================
 --- Mistweaver Monk DPS/Fistweaving Module
 --- Supports two modes based on CDs toggle:
---- CDsON: Pure damage focus (4-stack rotation)
---- CDsOFF: Fistweaving with healing focus (3-stack rotation)
+--- CDsON: Pure damage focus (optimal DPS rotation)
+--- CDsOFF: Fistweaving with healing focus (balances healing through damage)
 --- Built around proper stack management and Rising Sun Kick usage
+--- Current version focuses on 11.0.5 changes including Jade Empowerment mechanics
 --- ======= LOCALIZE =======
 -- Addon
 local addonName, addonTable = ...
@@ -70,12 +71,13 @@ local Settings = {
   Mistweaver = HR.GUISettings.APL.Monk.Mistweaver
 }
 
--- Add this helper function at the top
+-- Helper function for Crackling Jade Lightning channeling conditions
+-- CJL is particularly important with Jade Empowerment buff in 11.0.5+
 local function CanChannelCJL()
   local isReady = S.CracklingJadeLightning:IsReady()
   local notMoving = not Player:IsMoving()
   local inRange = Target:IsInRange(40)
-  local hasEnergy = Player:Energy() >= 20
+  local hasEnergy = Player:Energy() >= 20  -- Initial energy cost check
   local notChanneling = not Player:IsChanneling()
 
   return isReady and notMoving and inRange and hasEnergy and notChanneling
@@ -115,7 +117,9 @@ local function Precombat()
 end
 
 local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
-  -- Crackling Jade Lightning with Jade Empowerment - Only in AoE 4+ targets
+  -- Crackling Jade Lightning with Jade Empowerment
+  -- Only used in AoE (4+ targets) when empowered by Thunder Focus Tea
+  -- Each Jade Empowerment stack is a separate use, not a power increase
   if S.CracklingJadeLightning:IsReady() and Player:BuffUp(S.JadeEmpowermentBuff) and EnemiesCount5 >= 4 then
     if Cast(S.CracklingJadeLightning, nil, nil, not Target:IsSpellInRange(S.CracklingJadeLightning)) then 
       return "crackling_jade_lightning empowered aoe"; 
@@ -123,12 +127,9 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
   end
 
   -- Thunder Focus Tea optimization
-  -- Use with RSK if conditions align, otherwise save for Renewing Mist
+  -- Used primarily for RSK cooldown reduction in pure DPS
+  -- Also provides Jade Empowerment for AoE situations
   if S.ThunderFocusTea:IsReady() then
-    -- Use with RSK if:
-    -- 1. RSK cooldown is significant (>9s)
-    -- 2. We don't need to save it for Renewing Mist
-    -- 3. Secret Infusion talent consideration
     if S.RisingSunKick:CooldownRemains() > 9 
        and (not Player:BuffUp(S.RenewingMistBuff) or Player:BuffRemains(S.RenewingMistBuff) > 8)
        and (not S.SecretInfusion:IsAvailable() or Player:HasTier(31, 2)) then
@@ -207,18 +208,24 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
 end
 
 local function FistweavingPriority()  -- Used when CDs OFF - Optimized for DPS healing
-  -- Touch of Death - Highest priority for Fatal Touch effects
+  -- Touch of Death - Highest priority
+  -- Important for both burst damage and healing through Ancient Teachings
   if S.TouchofDeath:IsReady() then
     if Cast(S.TouchofDeath, nil, nil, not Target:IsInMeleeRange(5)) then return "touch_of_death fistweave"; end
   end
 
   -- Rising Sun Kick priority
-  -- Core ability for damage and healing through various talents
+  -- Core ability for both damage and healing:
+  -- 1. Extends Renewing Mist duration
+  -- 2. Triggers Ancient Teachings healing
+  -- 3. Core damage ability
   if S.RisingSunKick:IsReady() then
     if Cast(S.RisingSunKick, nil, nil, not Target:IsInMeleeRange(5)) then return "rising_sun_kick fistweave"; end
   end
 
   -- Blackout Kick for RSK resets
+  -- Important to track stacks and cooldown timing
+  -- Used to maintain healing through damage and reset RSK
   if S.BlackoutKick:IsReady() then
     local rskCD = S.RisingSunKick:CooldownRemains()
     local tomStacks = Player:BuffStack(S.TeachingsoftheMonasteryBuff)

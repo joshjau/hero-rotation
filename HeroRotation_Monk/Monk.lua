@@ -1,4 +1,8 @@
 --- ============================ HEADER ============================
+--- Monk Class Spell Definitions
+--- Includes all specs with special focus on Mistweaver's unique mechanics
+--- Particularly important for fistweaving and DPS healing capabilities
+
 --- ======= LOCALIZE =======
 -- Addon
 local addonName, addonTable = ...
@@ -223,36 +227,34 @@ Spell.Monk.Brewmaster = MergeTableByKey(Spell.Monk.Brewmaster, Spell.Monk.Master
 Spell.Monk.Brewmaster = MergeTableByKey(Spell.Monk.Brewmaster, Spell.Monk.ShadoPan)
 
 Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
-  -- Abilities
-  BlackoutKick                          = Spell(100784),
-  RisingSunKick                         = Spell(107428), 
-  SpinningCraneKick                     = Spell(101546),
-  TigerPalm                            = Spell(100780),
-  TouchofDeath                         = Spell(322109),
-  ExpelHarm                            = Spell(322101),
-  ChiBurst                             = Spell(123986),
-  ChiWave                              = Spell(115098),
-  ThunderFocusTea                      = Spell(116680),
-  CracklingJadeLightning               = Spell(117952),
+  -- Core Abilities
+  -- These form the backbone of both healing and DPS rotations
+  BlackoutKick                          = Spell(100784),  -- Core ability for RSK resets
+  RisingSunKick                         = Spell(107428),  -- Primary damage and healing ability
+  SpinningCraneKick                     = Spell(101546),  -- AoE damage option
+  TigerPalm                            = Spell(100780),   -- Basic builder for ToM stacks
+  TouchofDeath                         = Spell(322109),   -- Burst damage/healing cooldown
   
-  -- Talents
-  ChiHarmony                           = Spell(391315),
-  CraneStyle                           = Spell(391315), 
-  JadefireStomp                        = Spell(388193),
-  AncientConcordance                   = Spell(389391),
-  AncientTeachings                     = Spell(388023),
-  AwakenedJadefire                     = Spell(388779),
-  FatalTouch                           = Spell(394123),
-  CelestialConduit                     = Spell(392989),
+  -- Key Healing Abilities that interact with DPS
+  ExpelHarm                            = Spell(322101),   -- Emergency heal that converts to damage
+  ChiBurst                             = Spell(123986),   -- AoE healing and damage
+  ChiWave                              = Spell(115098),   -- Single target healing/damage
   
-  -- Buffs
-  TeachingsoftheMonasteryBuff          = Spell(202090),
-  AncientConcordanceBuff               = Spell(389391),
-  AwakenedJadefireBuff                 = Spell(388779),
-  EnvelopingMistBuff                   = Spell(124682),
-  RenewingMistBuff                     = Spell(119611),
-  ChiHarmonyBuff                       = Spell(391315),
-  JadeEmpowermentBuff      = Spell(467317),
+  -- Important Cooldowns
+  ThunderFocusTea                      = Spell(116680),   -- Core cooldown for empowerment
+  CracklingJadeLightning               = Spell(117952),   -- Ranged channel, important with Jade Empowerment
+  
+  -- Modern Talents (11.0.5+)
+  ChiHarmony                           = Spell(391315),   -- Healing increase from damage
+  CraneStyle                           = Spell(391315),   -- Core fistweaving talent
+  JadefireStomp                        = Spell(388193),   -- Important buff maintenance
+  AncientConcordance                   = Spell(389391),   -- Buff from Jadefire
+  AncientTeachings                     = Spell(388023),   -- Core healing through damage
+  AwakenedJadefire                     = Spell(388779),   -- Additional Jadefire buff
+  
+  -- Important Buffs to Track
+  TeachingsoftheMonasteryBuff          = Spell(202090),   -- Track for RSK resets
+  JadeEmpowermentBuff                  = Spell(467317),   -- From TFT, empowers CJL
 })
 
 -- Items

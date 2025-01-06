@@ -1,19 +1,23 @@
 --- ============================ HEADER ============================
-  -- HeroLib
-  local HL      = HeroLib
-  local Cache   = HeroCache
-  local Unit    = HL.Unit
-  local Player  = Unit.Player
-  local Pet     = Unit.Pet
-  local Target  = Unit.Target
-  local Spell   = HL.Spell
-  local Item    = HL.Item
+--- Monk Override Definitions
+--- Particularly important for Mistweaver's unique mechanics
+--- Handles special cases for abilities and buff tracking
+
+-- HeroLib
+local HL      = HeroLib
+local Cache   = HeroCache
+local Unit    = HL.Unit
+local Player  = Unit.Player
+local Pet     = Unit.Pet
+local Target  = Unit.Target
+local Spell   = HL.Spell
+local Item    = HL.Item
 -- HeroRotation
-  local HR      = HeroRotation
+local HR      = HeroRotation
 -- Spells
-  local SpellBM = Spell.Monk.Brewmaster
-  local SpellWW = Spell.Monk.Windwalker
-  local SpellMW = Spell.Monk.Mistweaver
+local SpellBM = Spell.Monk.Brewmaster
+local SpellWW = Spell.Monk.Windwalker
+local SpellMW = Spell.Monk.Mistweaver
 -- Lua
 
 --- ============================ CONTENT ============================
@@ -46,11 +50,13 @@ WWOldSpellIsCastable = HL.AddCoreOverride ("Spell.IsCastable",
 , 269)
 
 -- Mistweaver, ID: 270
+-- Override for proper CJL handling with Jade Empowerment
 local MWOldSpellIsCastable
 MWOldSpellIsCastable = HL.AddCoreOverride ("Spell.IsCastable",
   function (self, BypassRecovery, Range, AoESpell, ThisUnit, Offset)
     local BaseCheck = MWOldSpellIsCastable and MWOldSpellIsCastable(self, BypassRecovery, Range, AoESpell, ThisUnit, Offset) or 
       (self:IsLearned() and self:CooldownRemains( BypassRecovery, Offset or "Auto") == 0)
+    -- Special handling for CJL to prevent energy issues
     if self == SpellMW.CracklingJadeLightning then
       return BaseCheck and not Player:IsChanneling() and Player:Energy() >= 20
     else
@@ -59,11 +65,12 @@ MWOldSpellIsCastable = HL.AddCoreOverride ("Spell.IsCastable",
   end
 , 270)
 
--- Add channeling override
+-- Add channeling override for proper CJL tracking
 HL.AddCoreOverride("Player.IsChanneling",
   function(self, ...)
     if self:IsCasting() then
       local CastingInfo = self:CastingInfo()
+      -- Check specifically for CJL channeling
       if CastingInfo == SpellMW.CracklingJadeLightning:Name() then
         return true
       end
@@ -72,15 +79,16 @@ HL.AddCoreOverride("Player.IsChanneling",
   end
 , 270)
 
--- Add buff override for Mistweaver
+-- Buff tracking overrides for Jade Empowerment and other key buffs
 local MWOldBuffUp
 MWOldBuffUp = HL.AddCoreOverride("Player.BuffUp",
   function(self, Spell, AnyCaster, Offset)
+    -- Special handling for Jade Empowerment buff detection
     if Spell == SpellMW.JadeEmpowermentBuff then
       local name = AuraUtil.FindAuraByName(Spell:Name(), "player", "HELPFUL")
       return name ~= nil
     end
-    -- Use standard check for other buffs
+    -- Standard buff checking for other buffs
     return MWOldBuffUp and MWOldBuffUp(self, Spell, AnyCaster, Offset) or false
   end
 , 270)
