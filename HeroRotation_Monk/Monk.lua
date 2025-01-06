@@ -282,8 +282,16 @@ Item.Monk.Brewmaster = MergeTableByKey(Item.Monk.Commons, {
 
 -- Register spell effects
 HL:RegisterForEvent(function()
-  -- ... existing registrations ...
-  
-  -- Register Mistweaver channeled spells
+  -- Register Mistweaver channeled spells and effects
   Spell.Monk.Mistweaver.CracklingJadeLightning:RegisterInFlight()
+  Spell.Monk.Mistweaver.CracklingJadeLightning:RegisterInFlightEffect(117952)
+  
+  -- Register important buff tracking
+  Spell.Monk.Mistweaver.JadeEmpowermentBuff:RegisterAuraTracking()
+  Spell.Monk.Mistweaver.TeachingsoftheMonasteryBuff:RegisterAuraTracking()
+  
+  -- Register other important spells
+  Spell.Monk.Mistweaver.ThunderFocusTea:RegisterInFlight()
+  
+  HR.Print("Monk Spell Registration Complete")
 end, "PLAYER_LOGIN")
