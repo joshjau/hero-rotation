@@ -116,14 +116,9 @@ end
 
 local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
   -- Crackling Jade Lightning with Jade Empowerment - Only in AoE 4+ targets
-  -- Wait for 3 stacks in AoE for maximum chain damage
   if S.CracklingJadeLightning:IsReady() and Player:BuffUp(S.JadeEmpowermentBuff) and EnemiesCount5 >= 4 then
-    local jeStacks = Player:BuffStack(S.JadeEmpowermentBuff)
-    -- Use at 3 stacks for maximum damage, or at any stack if buff is about to expire
-    if jeStacks == 3 or Player:BuffRemains(S.JadeEmpowermentBuff) < 2 then
-      if Cast(S.CracklingJadeLightning, nil, nil, not Target:IsSpellInRange(S.CracklingJadeLightning)) then 
-        return "crackling_jade_lightning empowered aoe " .. jeStacks .. " stacks"; 
-      end
+    if Cast(S.CracklingJadeLightning, nil, nil, not Target:IsSpellInRange(S.CracklingJadeLightning)) then 
+      return "crackling_jade_lightning empowered aoe"; 
     end
   end
 
