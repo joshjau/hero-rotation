@@ -265,6 +265,14 @@ Spell.Monk.Mistweaver = MergeTableByKey(Spell.Monk.Commons, {
   CelestialConduit                    = Spell(443028),   -- Celestial Conduit ability
   HeartoftheJadeSerpentBuff           = Spell(456368),   -- Heart of the Jade Serpent buff
   HeartoftheJadeSerpentCDRBuff        = Spell(443421),   -- CDR buff from Heart of the Jade Serpent
+  
+  -- AoE Abilities
+  RushingJadeWind                      = Spell(116847),   -- AoE damage ability
+  RushingJadeWindBuff                  = Spell(116847),   -- Track the buff/uptime
+  
+  -- Celestials
+  InvokeYulon                          = Spell(322118),   -- Healing cooldown, no DPS benefit
+  InvokeChiJi                          = Spell(325197),   -- The Red Crane cooldown
 })
 
 -- Items

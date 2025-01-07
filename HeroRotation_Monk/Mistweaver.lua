@@ -48,6 +48,7 @@ S.JadeEmpowerment          = Spell(467317)
 S.AncientTeachings         = Spell(388023)
 S.CracklingJadeLightning   = Spell(117952)
 S.JadeEmpowermentBuff      = Spell(467317)
+S.RushingJadeWind          = Spell(116847)
 
 -- Items
 local I = Item.Monk.Mistweaver
@@ -141,9 +142,6 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
   if S.InvokeChiJi:IsReady() and S.InvokersDelight:IsAvailable() then
     if Cast(S.InvokeChiJi) then return "invoke_chiji pure_dps"; end
   end
-  if S.InvokeYulon:IsReady() and S.InvokersDelight:IsAvailable() then
-    if Cast(S.InvokeYulon) then return "invoke_yulon pure_dps"; end
-  end
 
   -- Celestial Conduit
   if S.CelestialConduit:IsReady() then
@@ -202,6 +200,11 @@ local function PureDPSPriority()  -- Used when CDs ON - Maximum damage
   -- Spinning Crane Kick in AoE
   if S.SpinningCraneKick:IsReady() and (EnemiesCount5 >= 4 or Player:BuffUp(S.DanceofChijiBuff)) then
     if Cast(S.SpinningCraneKick) then return "spinning_crane_kick aoe pure_dps"; end
+  end
+
+  -- Rushing Jade Wind
+  if S.RushingJadeWind:IsReady() then
+    if Cast(S.RushingJadeWind) then return "rushing_jade_wind pure_dps"; end
   end
 
   return false
@@ -288,6 +291,11 @@ local function FistweavingPriority()  -- Used when CDs OFF - Optimized for DPS h
   -- Chi Burst for AoE healing/damage
   if S.ChiBurst:IsReady() and not Player:IsMoving() and EnemiesCount5 >= 2 then
     if Cast(S.ChiBurst, nil, nil, not Target:IsInRange(40)) then return "chi_burst aoe"; end
+  end
+
+  -- Rushing Jade Wind
+  if S.RushingJadeWind:IsReady() then
+    if Cast(S.RushingJadeWind) then return "rushing_jade_wind fistweave"; end
   end
 
   -- Spinning Crane Kick only in heavy AoE situations
