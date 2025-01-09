@@ -17,7 +17,6 @@ local CreateARPanelOptions = HR.GUI.CreateARPanelOptions
 -- All settings here should be moved into the GUI someday.
 HR.GUISettings.APL.Mage = {
   Commons = {
-    UseTemporalWarp = true,
     Enabled = {
       Potions = true,
       Trinkets = true,
@@ -26,27 +25,25 @@ HR.GUISettings.APL.Mage = {
   },
   CommonsDS = {
     DisplayStyle = {
-      -- Common
       Interrupts = "Cooldown",
       Items = "Suggested",
       Potions = "Suggested",
       Trinkets = "Suggested",
-      -- Class Specific
-      ShiftingPower = "Suggested",
     },
   },
   CommonsOGCD = {
-    -- {Display GCD as OffGCD}
-    GCDasOffGCD = {
-      -- Abilities
-      ArcaneIntellect = true,
-    },
-    -- {Display OffGCD as OffGCD}
-    OffGCDasOffGCD = {
-      -- Racials
+    Enabled = {
       Racials = true,
-      -- Abilities
-      TimeWarp = true,
+      Items = true,
+      Trinkets = true,
+    },
+    Settings = {
+      GCDasOffGCD = {
+        ArcaneIntellect = true,
+      },
+      OffGCDasOffGCD = {
+        TimeWarp = true,
+      }
     }
   },
   Arcane = {
