@@ -174,24 +174,11 @@ local function FistweavingPriority()
   -- Track what we want to show in each window
   local mainIcon, leftIcon = nil, nil
 
-  -- Cooldowns first
-  if CDsON() then
-    if S.ThunderFocusTea:IsReady() then
-      if Cast(S.ThunderFocusTea, Settings.Mistweaver.DisplayStyle.ThunderFocusTea) then 
-        return "thunder_focus_tea cd"; 
-      end
-    end
-    
-    if S.InvokeChiJi:IsReady() then
-      if Cast(S.InvokeChiJi, Settings.Mistweaver.DisplayStyle.InvokeChiJi) then 
-        return "invoke_chiji cd"; 
-      end
-    end
-  end
-
   -- Check instant heal procs for left icon (like Fire Blast)
-  if S.EnvelopingMist:IsReady() and Player:BuffUp(S.EnvelopingBreathBuff) then
-    leftIcon = {S.EnvelopingMist, Settings.Mistweaver.DisplayStyle.InstantEnvelopingMist, "instant_enveloping_mist left"}
+  -- Give Enveloping Mist with Chi-Ji proc highest priority, but only at 3 stacks
+  if S.EnvelopingMist:IsReady() and Player:BuffUp(S.InvokeChiJiBuff) and Player:BuffStack(S.InvokeChiJiBuff) >= 3 then
+    leftIcon = {S.EnvelopingMist, Settings.Mistweaver.DisplayStyle.InstantEnvelopingMist, "instant_enveloping_mist left from chiji"}
+  -- Then check other instant heals
   elseif S.RenewingMist:IsReady() and S.RenewingMist:Charges() > 0 then
     leftIcon = {S.RenewingMist, Settings.Mistweaver.DisplayStyle.RenewingMist, "renewing_mist left"}
   elseif S.Vivify:IsReady() and (Player:BuffUp(S.TeaOfSerenityBuff) or Player:BuffUp(S.ThunderFocusTeaBuff)) then
@@ -221,16 +208,11 @@ end
 local function APL()
   -- Unit Update
   Enemies5y = Player:GetEnemiesInMeleeRange(5)
+  EnemiesCount5 = 0
   if AoEON() then
     EnemiesCount5 = #Enemies5y
   else 
-    EnemiesCount5 = 1
-  end
-
-  -- Precombat
-  if not Player:AffectingCombat() then
-    local ShouldReturn = Precombat(); if ShouldReturn then return ShouldReturn; end
-    return
+    EnemiesCount5 = Target:Exists() and 1 or 0
   end
 
   -- Main Combat Rotation
@@ -242,6 +224,18 @@ local function APL()
 
     -- Major Cooldowns (controlled by CD toggle)
     if CDsON() then
+      -- Empowered Crackling Jade Lightning
+      if S.CracklingJadeLightning:IsReady() and Player:BuffUp(S.JadeEmpowermentBuff) then
+        local canChannel = CanChannelCJL()
+        local singleEnemy = AoEON() and (#Enemies5y <= 1) or Target:Exists()
+        
+        if canChannel and singleEnemy then
+          if Cast(S.CracklingJadeLightning, "Cooldown") then 
+            return "crackling_jade_lightning empowered"; 
+          end
+        end
+      end
+
       -- Thunder Focus Tea
       if S.ThunderFocusTea:IsReady() then
         if Cast(S.ThunderFocusTea, Settings.Mistweaver.DisplayStyle.ThunderFocusTea) then 
@@ -274,15 +268,14 @@ local function Init()
   S.CracklingJadeLightning:RegisterInFlight()
   S.CracklingJadeLightning:RegisterInFlightEffect(117952)
   
-  -- Register buff tracking - only register spells that exist
-  if S.JadeEmpowermentBuff then S.JadeEmpowermentBuff:RegisterAuraTracking() end
+  -- Register buff tracking - move JadeEmpowerment to top for visibility
+  S.JadeEmpowermentBuff:RegisterAuraTracking()
   if S.TeachingsoftheMonasteryBuff then S.TeachingsoftheMonasteryBuff:RegisterAuraTracking() end
   if S.EnvelopingBreathBuff then S.EnvelopingBreathBuff:RegisterAuraTracking() end
   if S.ThunderFocusTeaBuff then S.ThunderFocusTeaBuff:RegisterAuraTracking() end
   if S.TeaOfSerenityBuff then S.TeaOfSerenityBuff:RegisterAuraTracking() end
   if S.VivifyBuff then S.VivifyBuff:RegisterAuraTracking() end
   
-  -- Print initialization message
   HR.Print("Mistweaver Monk rotation has been initialized")
 end
 

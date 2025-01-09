@@ -100,6 +100,7 @@ HR.GUISettings.APL.Monk = {
       Revival = "Cooldown",
       LifeCocoon = "Cooldown",
       CelestialConduit = "Cooldown",
+      CracklingJadeLightning = "Cooldown",
     },
   },
 }
