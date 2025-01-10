@@ -66,6 +66,8 @@ S.InstantVivifyBuff     = Spell(392883)     -- Various procs for instant Vivify
 S.ThunderFocusTeaBuff  = Spell(116680)   -- TFT buff for instant/enhanced spells
 S.TeaOfSerenityBuff     = Spell(388518)    -- Tea of Serenity buff
 S.VivifyBuff             = Spell(116670)           -- Vivify buff
+S.StrengthofSpirit          = Spell(443112)  -- Strength of the Black Ox buff
+S.RushingWindKick          = Spell(467307)  -- Rushing Wind Kick (replaces RSK)
 
 -- Items
 local I = Item.Monk.Mistweaver
@@ -174,10 +176,13 @@ local function FistweavingPriority()
   -- Track what we want to show in each window
   local mainIcon, leftIcon = nil, nil
 
-  -- Check instant heal procs for left icon (like Fire Blast)
+  -- Check instant heal procs for left icon
   -- Give Enveloping Mist with Chi-Ji proc highest priority, but only at 3 stacks
   if S.EnvelopingMist:IsReady() and Player:BuffUp(S.InvokeChiJiBuff) and Player:BuffStack(S.InvokeChiJiBuff) >= 3 then
     leftIcon = {S.EnvelopingMist, Settings.Mistweaver.DisplayStyle.InstantEnvelopingMist, "instant_enveloping_mist left from chiji"}
+  -- Add Strength of the Black Ox check for Enveloping Mist
+  elseif S.EnvelopingMist:IsReady() and Player:BuffUp(S.StrengthofSpirit) then
+    leftIcon = {S.EnvelopingMist, Settings.Mistweaver.DisplayStyle.InstantEnvelopingMist, "enveloping_mist left from black ox"}
   -- Then check other instant heals
   elseif S.RenewingMist:IsReady() and S.RenewingMist:Charges() > 0 then
     leftIcon = {S.RenewingMist, Settings.Mistweaver.DisplayStyle.RenewingMist, "renewing_mist left"}
@@ -186,7 +191,9 @@ local function FistweavingPriority()
   end
 
   -- Check DPS abilities for main icon
-  if S.RisingSunKick:IsReady() then
+  if S.RushingWindKick:IsReady() then  -- Check Rushing Wind Kick first
+    mainIcon = {S.RushingWindKick, nil, "rushing_wind_kick main"}
+  elseif S.RisingSunKick:IsReady() then  -- Fallback to RSK if not equipped
     mainIcon = {S.RisingSunKick, nil, "rising_sun_kick main"}
   elseif S.BlackoutKick:IsReady() then
     mainIcon = {S.BlackoutKick, nil, "blackout_kick main"}
