@@ -365,7 +365,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
   -- # Apply Deathstalkers Mark if it has fallen off
   -- actions.stealthed+=/ambush,if=!debuff.deathstalkers_mark.up&talent.deathstalkers_mark&combo_points<variable.effective_spend_cp
   -- &(dot.rupture.ticking|variable.single_target|!talent.subterfuge)
-  if (S.Ambush:IsReady() or ForceStealth) and Target:DebuffDown(S.DeathStalkersMarkDebuff) and S.DeathStalkersMark:IsAvailable()
+  if (S.Ambush:IsReady() or (ForceStealth and Player:BuffDown(S.DarkestNightBuff))) and Target:DebuffDown(S.DeathStalkersMarkDebuff) and S.DeathStalkersMark:IsAvailable()
     and ComboPoints < EffectiveCPSpend and (Target:DebuffUp(S.Rupture) or SingleTarget or not S.Subterfuge:IsAvailable() ) then
     if ReturnSpellOnly then
       return S.Ambush
@@ -379,7 +379,7 @@ local function Stealthed (ReturnSpellOnly, ForceStealth)
   -- # Make sure to have Shiv up during Kingsbane as a final check
   --actions.stealthed+=/shiv,if=talent.kingsbane&dot.kingsbane.ticking&dot.kingsbane.remains<8
   -- &(!debuff.shiv.up&debuff.shiv.remains<1)&buff.envenom.up
-  if S.Kingsbane:IsAvailable() and Player:BuffUp(S.Envenom) then
+  if S.Kingsbane:IsAvailable() and not ForceStealth and Player:BuffUp(S.Envenom) then
     if S.Shiv:IsReady() and Target:DebuffUp(S.Kingsbane) and Target:DebuffRemains(S.Kingsbane) < 8
       and (Target:DebuffDown(S.ShivDebuff) and Target:DebuffRemains(S.ShivDebuff) < 1) then
       if ReturnSpellOnly then
@@ -543,6 +543,11 @@ end
 -- # Vanish Handling
 local function Vanish ()
   if not Settings.Commons.UseDPSVanish or (Player:IsTanking(Target) and not Settings.Commons.UseSoloVanish) then
+    return
+  end
+
+  -- # Don't Vanish if deathstalker's mark isn't up and we're at a finish condition
+  if Target:BuffDown(S.DeathStalkersMarkDebuff) and ComboPoints >= EffectiveCPSpend then
     return
   end
 
@@ -832,8 +837,8 @@ local function CDs ()
   -- actions.cds+=/thistle_tea,if=!buff.thistle_tea.up&dot.kingsbane.ticking&dot.kingsbane.remains<8|!buff.thistle_tea.up
   -- &cooldown.thistle_tea.charges>=2&debuff.shiv.remains>6|!buff.thistle_tea.up&fight_remains<=cooldown.thistle_tea.charges*6
   if S.ThistleTea:IsCastable() and Player:BuffDown(S.ThistleTea) and Target:DebuffUp(S.Kingsbane) and Target:DebuffRemains(S.Kingsbane) < 8
-    or Player:BuffDown(S.ThistleTea) and S.ThistleTea:Charges() >= 2
-    and Target:DebuffRemains(S.ShivDebuff) > 6 or Player:BuffDown(S.ThistleTea) and HL.BossFilteredFightRemains("<", S.ThistleTea:Charges() * 6) then
+    or Player:BuffDown(S.ThistleTea) and S.ThistleTea:Charges() >= 2 and Target:DebuffRemains(S.ShivDebuff) > 6
+    or Player:BuffDown(S.ThistleTea) and HL.BossFilteredFightRemains("<", S.ThistleTea:Charges() * 6) then
     if Cast(S.ThistleTea, Settings.CommonsOGCD.OffGCDasOffGCD.ThistleTea) then
       return "Cast Thistle Tea"
     end
@@ -996,7 +1001,7 @@ local function Direct ()
   -- # Check if we should be using a filler
   -- actions.direct+=/variable,name=use_filler,value=combo_points<=variable.effective_spend_cp&!variable.cd_soon
   -- |variable.not_pooling|!variable.single_target
-  local UseFiller = ComboPoints <= EffectiveCPSpend and not CDSoon or NotPooling or not SingleTarget
+  local UseFiller = ComboPoints < EffectiveCPSpend and not CDSoon or NotPooling or not SingleTarget
 
   -- # Maintain Caustic Spatter
   -- actions.direct+=/variable,name=use_caustic_filler,value=talent.caustic_spatter&dot.rupture.ticking
@@ -1088,8 +1093,8 @@ local function Direct ()
   end
   -- actions.direct+=/mutilate,if=variable.use_filler
   if S.Mutilate:IsCastable() and UseFiller then
-    if CastPooling(S.Mutilate, nil, not TargetInMeleeRange) then
-      return "Cast Mutilate"
+    if CastPooling(S.Mutilate, nil,not TargetInMeleeRange) then
+      return "Cast Mutilate (Filler)"
     end
   end
 
@@ -1191,7 +1196,7 @@ local function APL ()
 
     -- # Check upper bounds of energy to begin spending
     -- actions+=/variable,name=upper_limit_energy,value=energy.pct>=(50-10*talent.vicious_venoms.rank)
-    UpperLimitEnergy = Player:EnergyPercentage() >= (50 - 30 * BoolToInt(S.SanguineBlades:IsAvailable()) - 10 * S.ViciousVenoms:TalentRank())
+    UpperLimitEnergy = Player:EnergyPercentage() >= (50 - 10 * S.ViciousVenoms:TalentRank())
 
     -- # Variable to control avoiding auto-proc on Thistle Tea
     -- actions+=/variable,name=avoid_tea,value=energy>40+50+5*talent.vicious_venoms.rank
