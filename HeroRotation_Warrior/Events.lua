@@ -96,8 +96,6 @@ local WarriorEventFrame = CreateFrame("Frame")
 WarriorEventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 WarriorEventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 WarriorEventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-WarriorEventFrame:RegisterEvent("UNIT_DIED")
-WarriorEventFrame:RegisterEvent("UNIT_DESTROYED")
 
 local function CleanupOldEntries()
   if not Warrior.EnhancedStats.PendingCleanup then return end
@@ -139,6 +137,13 @@ end
 WarriorEventFrame:SetScript("OnEvent", function(self, event)
   if event == "COMBAT_LOG_EVENT_UNFILTERED" then
     local timestamp, subEvent, _, sourceGUID, _, _, _, destGUID, _, _, _, spellID, _, _, amount = CombatLogGetCurrentEventInfo()
+    
+    -- Handle unit death through combat log
+    if subEvent == "UNIT_DIED" or subEvent == "UNIT_DESTROYED" then
+      if Warrior.Ravager[destGUID] then
+        Warrior.Ravager[destGUID] = nil
+      end
+    end
     
     if sourceGUID == Player:GUID() then
       local currentTime = GetTime()
