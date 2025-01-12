@@ -55,6 +55,14 @@ local EnrageUp
 local BossFightRemains = 11111
 local FightRemains = 11111
 
+-- Add new predictive variables for enhanced calculations
+local VarNextRageGen = 0
+local VarPredictedEnrage = false
+local VarOptimalExecuteWindow = false
+local VarDamageMultiplier = 1.0
+local LastCalculationTime = 0
+local CALCULATION_THRESHOLD = 0.1 -- 100ms threshold for heavy calculations
+
 --- ===== Trinket Variables =====
 local Trinket1, Trinket2
 local VarTrinket1Spell, VarTrinket2Spell
@@ -142,6 +150,32 @@ HL:RegisterForEvent(function()
 end, "PLAYER_EQUIPMENT_CHANGED", "SPELLS_CHANGED", "LEARNED_SPELL_IN_TAB")
 
 --- ===== Rotation Functions =====
+-- Enhanced calculation function for better predictions
+local function CalculateDamageMultipliers()
+  if GetTime() - LastCalculationTime < CALCULATION_THRESHOLD then return end
+  LastCalculationTime = GetTime()
+  
+  -- Complex damage multiplier calculation using multiple factors
+  VarDamageMultiplier = 1.0
+  if EnrageUp then VarDamageMultiplier = VarDamageMultiplier * 1.25 end
+  if Player:BuffUp(S.RecklessnessBuff) then VarDamageMultiplier = VarDamageMultiplier * 1.2 end
+  if Target:DebuffUp(S.ChampionsMightDebuff) then VarDamageMultiplier = VarDamageMultiplier * 1.15 end
+  
+  -- Predict next rage generation
+  VarNextRageGen = 0
+  if S.Bloodthirst:CooldownRemains() < Player:GCD() then VarNextRageGen = VarNextRageGen + 8 end
+  if S.RagingBlow:Charges() > 0 then VarNextRageGen = VarNextRageGen + 12 end
+  
+  -- Predict optimal execute timing
+  VarOptimalExecuteWindow = Target:HealthPercentage() < 35 and Player:BuffStack(S.SuddenDeathBuff) > 0
+  
+  -- Predict upcoming enrage status
+  VarPredictedEnrage = EnrageUp or 
+    (S.Rampage:IsReady() and Player:Rage() >= 80) or
+    (S.Bloodthirst:CooldownRemains() < 0.5 and Player:CritChancePct() > 30)
+end
+
+-- Enhanced Precombat function
 local function Precombat()
   -- flask
   -- food
@@ -185,17 +219,52 @@ local function Precombat()
   if S.Charge:IsReady() and not TargetInMeleeRange then
     if Cast(S.Charge, nil, nil, not Target:IsInRange(25)) then return "charge precombat 14"; end
   end
+  
+  -- Add predictive calculations
+  CalculateDamageMultipliers()
 end
 
 local function SlayerAMST()
-  -- recklessness,if=(!talent.anger_management&cooldown.avatar.remains<1&talent.titans_torment)|talent.anger_management|!talent.titans_torment
-  if CDsON() and S.Recklessness:IsCastable() and ((not S.AngerManagement:IsAvailable() and S.Avatar:CooldownRemains() < 1 and S.TitansTorment:IsAvailable()) or S.AngerManagement:IsAvailable() or not S.TitansTorment:IsAvailable()) then
+  -- Run enhanced calculations
+  CalculateDamageMultipliers()
+  
+  -- Enhanced Recklessness logic with predictive elements
+  if CDsON() and S.Recklessness:IsCastable() and (
+    (not S.AngerManagement:IsAvailable() and S.Avatar:CooldownRemains() < 1 and S.TitansTorment:IsAvailable()) or 
+    S.AngerManagement:IsAvailable() or 
+    not S.TitansTorment:IsAvailable()
+  ) and VarPredictedEnrage then
     if Cast(S.Recklessness, Settings.Fury.GCDasOffGCD.Recklessness) then return "recklessness slayer_am_st 2"; end
   end
-  -- avatar,if=(talent.titans_torment&(buff.enrage.up|talent.titanic_rage)&(debuff.champions_might.up|!talent.champions_might))|!talent.titans_torment
-  if CDsON() and S.Avatar:IsCastable() and ((S.TitansTorment:IsAvailable() and (EnrageUp or S.TitanicRage:IsAvailable()) and (Target:DebuffUp(S.ChampionsMightDebuff) or not S.ChampionsMight:IsAvailable())) or not S.TitansTorment:IsAvailable()) then
+  
+  -- Enhanced Avatar logic with damage multiplier consideration
+  if CDsON() and S.Avatar:IsCastable() and (
+    (S.TitansTorment:IsAvailable() and VarPredictedEnrage and VarDamageMultiplier > 1.2) or 
+    not S.TitansTorment:IsAvailable()
+  ) then
     if Cast(S.Avatar, Settings.Fury.GCDasOffGCD.Avatar) then return "avatar slayer_am_st 4"; end
   end
+  
+  -- Enhanced Execute logic with predictive elements
+  if S.Execute:IsReady() and (
+    Target:DebuffStack(S.MarkedforExecutionDebuff) == 3 or 
+    Player:BuffRemains(S.AshenJuggernautBuff) < 2 or 
+    (Player:BuffStack(S.SuddenDeathBuff) == 2 and Player:BuffRemains(S.SuddenDeathBuff) < 7) or 
+    Player:BuffRemains(S.SuddenDeathBuff) < 2 or
+    VarOptimalExecuteWindow
+  ) then
+    if Cast(S.Execute, nil, nil, not TargetInMeleeRange) then return "execute slayer_am_st 12"; end
+  end
+  
+  -- Enhanced Rampage logic with rage prediction
+  if S.Rampage:IsReady() and (
+    not EnrageUp or
+    (VarNextRageGen > 20 and Player:Rage() >= 100) or
+    (S.RagingBlow:Charges() <= 1 and Player:Rage() >= 115)
+  ) then
+    if Cast(S.Rampage, nil, nil, not TargetInMeleeRange) then return "rampage enhanced"; end
+  end
+  
   -- thunderous_roar,if=buff.enrage.up
   if CDsON() and S.ThunderousRoar:IsCastable() and (EnrageUp) then
     if Cast(S.ThunderousRoar, Settings.Fury.GCDasOffGCD.ThunderousRoar, nil, not Target:IsInMeleeRange(12)) then return "thunderous_roar slayer_am_st 6"; end
@@ -207,10 +276,6 @@ local function SlayerAMST()
   -- odyns_fury,if=dot.odyns_fury_torment_mh.remains<1&(buff.enrage.up|talent.titanic_rage)&cooldown.avatar.remains
   if CDsON() and S.OdynsFury:IsCastable() and (Target:DebuffRemains(S.OdynsFuryDebuff) < 1 and (EnrageUp or S.TitanicRage:IsAvailable()) and S.Avatar:CooldownDown()) then
     if Cast(S.OdynsFury, nil, Settings.CommonsDS.DisplayStyle.OdynsFury, not Target:IsInMeleeRange(12)) then return "odyns_fury slayer_am_st 10"; end
-  end
-  -- execute,if=debuff.marked_for_execution.stack=3|buff.ashen_juggernaut.remains<2|buff.sudden_death.stack=2&buff.sudden_death.remains<7|buff.sudden_death.remains<2
-  if S.Execute:IsReady() and (Target:DebuffStack(S.MarkedforExecutionDebuff) == 3 or Player:BuffRemains(S.AshenJuggernautBuff) < 2 or Player:BuffStack(S.SuddenDeathBuff) == 2 and Player:BuffRemains(S.SuddenDeathBuff) < 7 or Player:BuffRemains(S.SuddenDeathBuff) < 2) then
-    if Cast(S.Execute, nil, nil, not TargetInMeleeRange) then return "execute slayer_am_st 12"; end
   end
   -- rampage,if=talent.bladestorm&cooldown.bladestorm.remains<=gcd&!debuff.champions_might.up
   if S.Rampage:IsReady() and (S.Bladestorm:IsLearned() and S.Bladestorm:CooldownRemains() <= Player:GCD() and Target:DebuffDown(S.ChampionsMightDebuff)) then
@@ -997,6 +1062,11 @@ local function APL()
   end
 
   if Everyone.TargetIsValid() then
+    -- Check if we're charging - if so, return nothing
+    if Player:IsChanneling(S.Charge) then
+      if HR.CastAnnotated(S.Pool, false, "CHARGING") then return "Wait for Charge to complete"; end
+    end
+    
     -- call Precombat
     if not Player:AffectingCombat() then
       local ShouldReturn = Precombat(); if ShouldReturn then return ShouldReturn; end
