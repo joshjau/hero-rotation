@@ -201,7 +201,7 @@ local function Precombat()
     if Cast(S.BattleShout, Settings.CommonsOGCD.GCDasOffGCD.BattleShout) then return "battle_shout precombat 4"; end
   end
   -- use_item,name=treacherous_transmitter
-  if Settings.Commons.Enabled.Trinkets and I.TreacherousTransmitter:IsEquippedAndReady() then
+  if CDsON() and Settings.Commons.Enabled.Trinkets and I.TreacherousTransmitter:IsEquippedAndReady() then
     if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "treacherous_transmitter precombat 6"; end
   end
   -- recklessness,if=!equipped.fyralath_the_dreamrender
@@ -996,7 +996,7 @@ local function Trinkets()
   if Settings.Commons.Enabled.Trinkets then
     -- do_treacherous_transmitter_task
     -- use_item,name=treacherous_transmitter,if=variable.adds_remain|variable.st_planning
-    if I.TreacherousTransmitter:IsEquippedAndReady() and (VarAddsRemain or VarSTPlanning) then
+    if CDsON() and I.TreacherousTransmitter:IsEquippedAndReady() and (VarAddsRemain or VarSTPlanning) then
       if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "treacherous_transmitter trinkets 2"; end
     end
     -- use_item,slot=trinket1,if=variable.trinket_1_buffs&!variable.trinket_1_manual&(!buff.avatar.up&trinket.1.cast_time>0|!trinket.1.cast_time>0)&((talent.titans_torment&cooldown.avatar.ready)|(buff.avatar.up&!talent.titans_torment))&(variable.trinket_2_exclude|!trinket.2.has_cooldown|trinket.2.cooldown.remains|variable.trinket_priority=1)|trinket.1.proc.any_dps.duration>=fight_remains
