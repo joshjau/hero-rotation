@@ -196,6 +196,7 @@ Spell.Hunter.Marksmanship = MergeTableByKey(Spell.Hunter.Commons, {
   TrueshotBuff                          = Spell(288613),
   VolleyBuff                            = Spell(260243),
   -- Debuffs
+  SpottersMarkDebuff                    = Spell(466872),
   -- Legendaries
   EagletalonsTrueFocusBuff              = Spell(336851),
 })
