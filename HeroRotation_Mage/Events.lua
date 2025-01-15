@@ -103,3 +103,30 @@ end, "SPELL_DAMAGE")
 function Player:FrozenOrbGroundAoeRemains()
   return math.max((FrozenOrbHitTime - (GetTime() - 10) - HL.RecoveryTimer()), 0)
 end]]
+
+-- Register Combat Log Event Handler
+HL:RegisterForEvent(function(...)
+  local timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellID, spellName = ...
+  
+  -- Only process events from the player
+  if sourceGUID ~= Player:GUID() then return end
+  
+  if subevent == "SPELL_CAST_SUCCESS" then
+    -- Track Frostbolt casts for Icicles
+    if spellID == 116 then -- Frostbolt
+      -- Trigger Icicles optimization check
+      if OptimizeIciclesUsage then
+        if OptimizeIciclesUsage() then
+          VarNextCast = "glacial_spike"
+        end
+      end
+    end
+  elseif subevent == "SPELL_AURA_APPLIED" then
+    -- Track Winter's Chill applications
+    if spellID == 228358 then -- Winter's Chill
+      if WCMetrics then
+        WCMetrics.applications = WCMetrics.applications + 1
+      end
+    end
+  end
+end, "COMBAT_LOG_EVENT_UNFILTERED")
