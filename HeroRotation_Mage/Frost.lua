@@ -250,34 +250,106 @@ local function Precombat()
   end
 end
 
-local function CDs()
-  if Settings.Commons.Enabled.Trinkets then
-    -- use_item,name=treacherous_transmitter,if=fight_remains<32+20*equipped.spymasters_web|prev_off_gcd.icy_veins|(!variable.boltspam|equipped.spymasters_web)&(cooldown.icy_veins.remains<12|cooldown.icy_veins.remains<22&cooldown.shifting_power.remains<10)
-    if I.TreacherousTransmitter:IsEquippedAndReady() and (BossFightRemains < 32 + 20 * num(I.SpymastersWeb:IsEquipped()) or Player:PrevOffGCDP(1, S.IcyVeins) or (not VarBoltSpam or I.SpymastersWeb:IsEquipped()) and (S.IcyVeins:CooldownRemains() < 12 or S.IcyVeins:CooldownRemains() < 22 and S.ShiftingPower:CooldownRemains() < 10)) then
-      if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "treacherous_transmitter cds 2"; end
-    end
-    -- do_treacherous_transmitter_task,if=fight_remains<18|(buff.cryptic_instructions.remains<?buff.realigning_nexus_convergence_divergence.remains<?buff.errant_manaforge_emission.remains)<(action.shifting_power.execute_time+1*talent.ray_of_frost)
-    -- TODO
-    -- use_item,name=spymasters_web,if=fight_remains<20|buff.icy_veins.remains<19&(fight_remains<105|buff.spymasters_report.stack>=32)&(buff.icy_veins.remains>15|trinket.treacherous_transmitter.cooldown.remains>50)
-    if I.SpymastersWeb:IsEquippedAndReady() and (BossFightRemains < 20 or Player:BuffRemains(S.IcyVeinsBuff) < 19 and (FightRemains < 105 or Player:BuffStack(S.SpymastersReportBuff) >= 32) and (Player:BuffRemains(S.IcyVeinsBuff) > 15 or I.TreacherousTransmitter:IsEquipped() and I.TreacherousTransmitter:CooldownRemains() > 50)) then
-      if Cast(I.SpymastersWeb, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "spymasters_web cds 4"; end
-    end
-    -- use_item,name=imperfect_ascendancy_serum,if=buff.icy_veins.remains>15|fight_remains<20
-    if I.ImperfectAscendancySerum:IsEquippedAndReady() and (Player:BuffRemains(S.IcyVeinsBuff) > 15 or BossFightRemains < 20) then
-      if Cast(I.ImperfectAscendancySerum, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "imperfect_ascendancy_serum cds 6"; end
-    end    
-    -- use_item,name=burst_of_knowledge,if=buff.icy_veins.remains>15|fight_remains<20
-    if I.BurstofKnowledge:IsEquippedAndReady() and (Player:BuffRemains(S.IcyVeinsBuff) > 15 or BossFightRemains < 20) then
-      if Cast(I.BurstofKnowledge, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "burst_of_knowledge cds 8"; end
+-- Trinket/Item helper functions
+local function ShouldUseTrinkets()
+  return Settings.Commons.Enabled.Trinkets and CDsON()
+end
+
+local function ShouldUseItems()
+  return Settings.Commons.Enabled.Items and CDsON()
+end
+
+-- Enhanced trinket usage logic
+local function UseTrinkets()
+  if not ShouldUseTrinkets() then return false end
+  
+  -- Treacherous Transmitter Logic
+  if I.TreacherousTransmitter:IsEquippedAndReady() then
+    -- Enhanced logic for Treacherous Transmitter
+    local shouldUseTT = BossFightRemains < 32 + 20 * num(I.SpymastersWeb:IsEquipped()) or 
+                       Player:PrevOffGCDP(1, S.IcyVeins) or 
+                       (not VarBoltSpam or I.SpymastersWeb:IsEquipped()) and 
+                       (S.IcyVeins:CooldownRemains() < 12 or 
+                        S.IcyVeins:CooldownRemains() < 22 and S.ShiftingPower:CooldownRemains() < 10)
+    
+    if shouldUseTT then
+      if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then 
+        return "treacherous_transmitter trinkets"; 
+      end
     end
   end
+  
+  -- Spymaster's Web Logic
+  if I.SpymastersWeb:IsEquippedAndReady() then
+    -- Enhanced logic for Spymaster's Web
+    local shouldUseSW = BossFightRemains < 20 or 
+                       (Player:BuffRemains(S.IcyVeinsBuff) < 19 and 
+                        (FightRemains < 105 or Player:BuffStack(S.SpymastersReportBuff) >= 32) and
+                        (Player:BuffRemains(S.IcyVeinsBuff) > 15 or 
+                         I.TreacherousTransmitter:IsEquipped() and 
+                         I.TreacherousTransmitter:CooldownRemains() > 50))
+    
+    if shouldUseSW then
+      if Cast(I.SpymastersWeb, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then 
+        return "spymasters_web trinkets"; 
+      end
+    end
+  end
+  
+  -- Imperfect Ascendancy Serum Logic
+  if I.ImperfectAscendancySerum:IsEquippedAndReady() then
+    if Player:BuffRemains(S.IcyVeinsBuff) > 15 or BossFightRemains < 20 then
+      if Cast(I.ImperfectAscendancySerum, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then 
+        return "imperfect_ascendancy_serum trinkets"; 
+      end
+    end
+  end
+  
+  -- Burst of Knowledge Logic
+  if I.BurstofKnowledge:IsEquippedAndReady() then
+    if Player:BuffRemains(S.IcyVeinsBuff) > 15 or BossFightRemains < 20 then
+      if Cast(I.BurstofKnowledge, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then 
+        return "burst_of_knowledge trinkets"; 
+      end
+    end
+  end
+  
+  -- Generic trinket usage
+  if Settings.Commons.Enabled.Trinkets or Settings.Commons.Enabled.Items then
+    local ItemToUse, ItemSlot, ItemRange = Player:GetUseableItems(OnUseExcludes)
+    if ItemToUse then
+      local DisplayStyle = Settings.CommonsDS.DisplayStyle.Trinkets
+      if ItemSlot ~= 13 and ItemSlot ~= 14 then 
+        DisplayStyle = Settings.CommonsDS.DisplayStyle.Items 
+      end
+      if ((ItemSlot == 13 or ItemSlot == 14) and Settings.Commons.Enabled.Trinkets) or 
+         (ItemSlot ~= 13 and ItemSlot ~= 14 and Settings.Commons.Enabled.Items) then
+        if Cast(ItemToUse, nil, DisplayStyle, not Target:IsInRange(ItemRange)) then 
+          return "generic_trinket for " .. ItemToUse:Name(); 
+        end
+      end
+    end
+  end
+  
+  return false
+end
+
+-- Update CDs() function to use new trinket logic
+local function CDs()
+  -- Call enhanced trinket logic
+  local ShouldReturn = UseTrinkets()
+  if ShouldReturn then return ShouldReturn; end
+
   -- potion,if=fight_remains<35|buff.icy_veins.remains>9&(fight_remains>315|cooldown.icy_veins.remains+12>fight_remains)
-  if Settings.Commons.Enabled.Potions and (BossFightRemains < 35 or Player:BuffRemains(S.IcyVeinsBuff) > 9 and (FightRemains > 315 or S.IcyVeins:CooldownRemains() + 12 > FightRemains)) then
+  if Settings.Commons.Enabled.Potions and CDsON() and 
+     (BossFightRemains < 35 or Player:BuffRemains(S.IcyVeinsBuff) > 9 and 
+      (FightRemains > 315 or S.IcyVeins:CooldownRemains() + 12 > FightRemains)) then
     local PotionSelected = Everyone.PotionSelected()
     if PotionSelected and PotionSelected:IsReady() then
       if Cast(PotionSelected, nil, Settings.CommonsDS.DisplayStyle.Potions) then return "potion cds 10"; end
     end
   end
+  
   -- icy_veins,if=buff.icy_veins.remains<gcd.max*2
   if CDsON() and S.IcyVeins:IsCastable() and (Player:BuffRemains(S.IcyVeinsBuff) < Player:GCD() * 2) then
     if Cast(S.IcyVeins, Settings.Frost.GCDasOffGCD.IcyVeins) then return "icy_veins cds 12"; end
