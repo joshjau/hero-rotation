@@ -27,6 +27,33 @@ local bool       = HR.Commons.Everyone.bool
 -- lua
 local mathmax        = math.max
 
+-- Initialize Commons if needed
+if not HR.Commons.Mage then HR.Commons.Mage = {} end
+
+-- Initialize metrics and states at the start
+HR.Commons.Mage.WCMetrics = {
+  applications = 0,
+  shatters = 0,
+  optimalShatterWindows = 0,
+  movementEfficiency = 0,
+  suboptimalCasts = 0
+}
+
+HR.Commons.Mage.SpellStates = {
+  predictedIcicles = 0,
+  incomingWintersChill = 0,
+  perfectShatterWindow = false,
+  lastWinterChillApplication = 0,
+  lastFlurryCast = 0,
+  lastFrostboltCast = 0,
+  lastGlacialSpikeCast = 0,
+  movementCasts = 0
+}
+
+-- Create local references
+local WCMetrics = HR.Commons.Mage.WCMetrics
+local SpellStates = HR.Commons.Mage.SpellStates
+
 --- ============================ CONTENT ===========================
 --- ======= APL LOCALS =======
 -- luacheck: max_line_length 9999
@@ -80,6 +107,8 @@ HL:RegisterForEvent(function()
   S.IceLance:RegisterInFlightEffect(228598)
   S.IceLance:RegisterInFlight()
   S.Splinterstorm:RegisterInFlight()
+  S.CometStorm:RegisterInFlightEffect(153596)
+  S.CometStorm:RegisterInFlight()
   VarBoltSpam = S.Splinterstorm:IsAvailable() and S.ColdFront:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable() and S.FrozenTouch:IsAvailable() or S.FrostfireBolt:IsAvailable() and S.DeepShatter:IsAvailable() and S.SlickIce:IsAvailable() and S.DeathsChill:IsAvailable()
   Bolt = S.FrostfireBolt:IsAvailable() and S.FrostfireBolt or S.Frostbolt
 end, "SPELLS_CHANGED", "LEARNED_SPELL_IN_TAB")
@@ -95,6 +124,8 @@ S.GlacialSpike:RegisterInFlight()
 S.IceLance:RegisterInFlightEffect(228598)
 S.IceLance:RegisterInFlight()
 S.Splinterstorm:RegisterInFlight()
+S.CometStorm:RegisterInFlightEffect(153596)
+S.CometStorm:RegisterInFlight()
 
 HL:RegisterForEvent(function()
   BossFightRemains = 11111
@@ -114,6 +145,8 @@ end
 
 -- Optimized Winter's Chill tracking
 local function CalculateWintersChill(enemies)
+  local SpellStates = HR.Commons.Mage.SpellStates
+  
   -- Cache the aura count check to avoid multiple API calls
   local wcAuraCount = S.WintersChillDebuff:AuraActiveCount()
   if wcAuraCount == 0 then return 0 end
@@ -133,48 +166,30 @@ local function CalculateWintersChill(enemies)
   -- If Flurry is in flight, we need to be more conservative with Winter's Chill usage
   -- since it could apply 2 stacks when it lands
   if flurryInFlight then
-    return math.min(2, WCStacks + 2)
+    return math.min(2, WCStacks + SpellStates.incomingWintersChill)
   end
   
   return WCStacks
 end
 
--- Efficient Shatter combo detection
+-- Enhanced Shatter combo detection
 local function ShouldShatter()
-  -- Cache buff states to reduce API calls
   local hasFoF = Player:BuffUp(S.FingersofFrostBuff)
+  local hasWC = Target:DebuffUp(S.WintersChillDebuff)
   local hasBF = Player:BuffUp(S.BrainFreezeBuff)
-  local targetFrozen = Target:DebuffUp(S.WintersChillDebuff) or Target:DebuffUp(S.Freeze) or Target:DebuffUp(S.FrostNova)
   
-  -- Prioritize different Shatter scenarios
-  if hasFoF and targetFrozen then return "ice_lance" end
-  if hasBF and Icicles == 5 and S.GlacialSpike:IsReady() then return "glacial_spike" end
-  if hasBF then return "flurry" end
-  
-  return nil
-end
-
--- Optimize Icicles management
-local function OptimizeIciclesUsage()
-  -- Cache Icicles count to avoid multiple checks
-  local icicleCount = Player:BuffStack(S.IciclesBuff)
-  
-  -- Early return if not enough Icicles
-  if icicleCount < 4 then return false end
-  
-  -- Check for optimal Glacial Spike conditions
-  if S.GlacialSpike:IsReady() and icicleCount == 5 then
-    -- Check if we can execute perfect Shatter combo
-    if S.Flurry:CooldownUp() then
-      return true
-    end
-    -- Check if target already has Winter's Chill
-    if Target:DebuffUp(S.WintersChillDebuff) then
-      return true
-    end
+  if hasWC and (hasFoF or S.Flurry:InFlight()) then
+    SpellStates.perfectShatterWindow = true
+  else
+    SpellStates.perfectShatterWindow = false
   end
   
-  return false
+  return hasFoF or hasWC or (hasBF and S.Flurry:IsReady())
+end
+
+-- Enhanced Icicles management
+local function OptimizeIciclesUsage()
+  return SpellStates.predictedIcicles >= 4
 end
 
 -- Register events for Winter's Chill tracking
@@ -208,9 +223,6 @@ end
 
 --- ===== Rotation Functions =====
 local function Precombat()
-  -- flask
-  -- food
-  -- augmentation
   -- arcane_intellect
   if S.ArcaneIntellect:IsCastable() and Everyone.GroupBuffMissing(S.ArcaneIntellect) then
     -- Check if any party/raid members are in range and need the buff
@@ -221,8 +233,7 @@ local function Precombat()
       for i = 1, groupSize do
         local unit = IsInRaid() and "raid"..i or "party"..i
         if UnitExists(unit) and not UnitIsDeadOrGhost(unit) and 
-           Unit(unit):IsInRange(40) and 
-           not Unit(unit):Buff(S.ArcaneIntellect) then
+           S.ArcaneIntellect:IsUsableP() and not Unit(unit):Buff(S.ArcaneIntellect) then
           needsBuff = true
           break
         end
@@ -230,23 +241,18 @@ local function Precombat()
     end
     
     if groupSize == 1 or needsBuff then
-      if Cast(S.ArcaneIntellect, Settings.CommonsOGCD.GCDasOffGCD.ArcaneIntellect) then return "arcane_intellect precombat 2"; end
+      if Cast(S.ArcaneIntellect) then return "arcane_intellect precombat 2"; end
     end
   end
+  
   -- snapshot_stats
-  -- variable,name=boltspam,value=talent.splinterstorm&talent.cold_front&talent.slick_ice&talent.deaths_chill&talent.frozen_touch|talent.frostfire_bolt&talent.deep_shatter&talent.slick_ice&talent.deaths_chill
-  -- Note: Variables moved to declarations and SPELLS_CHANGED/LEARNED_SPELL_IN_TAB Event Registrations.
-  -- variable,name=treacherous_transmitter_precombat_cast,value=12*!variable.boltspam
-  -- Note: Unused variable.
-  -- use_item,name=treacherous_transmitter
-  if I.TreacherousTransmitter:IsEquippedAndReady() then
-    if Cast(I.TreacherousTransmitter, nil, Settings.CommonsDS.DisplayStyle.Trinkets) then return "treacherous_transmitter precombat 2"; end
+  -- mirror_image
+  if S.MirrorImage:IsCastable() then
+    if Cast(S.MirrorImage, Settings.Frost.GCDasOffGCD.MirrorImage) then return "mirror_image precombat 4"; end
   end
-  -- blizzard,if=active_enemies>=3
-  -- Note: Can't check active_enemies in Precombat
-  -- frostbolt,if=active_enemies<=2
-  if Bolt:IsCastable() and not Player:IsCasting(Bolt) then
-    if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostbolt precombat 4"; end
+  -- frostbolt
+  if S.Frostbolt:IsCastable() then
+    if Cast(S.Frostbolt) then return "frostbolt precombat 6"; end
   end
 end
 
@@ -430,16 +436,31 @@ local function AoEFF()
     if Cast(Bolt, nil, nil, not Target:IsSpellInRange(Bolt)) then return "frostfire_bolt aoe_ff 4"; end
   end
   -- freeze,if=freezable&(prev_gcd.1.glacial_spike|prev_gcd.1.comet_storm&cooldown.cone_of_cold.remains&!prev_gcd.2.cone_of_cold)
-  if Pet:IsActive() and S.Freeze:IsReady() and (Freezable() and (Player:PrevGCDP(1, S.GlacialSpike) or Player:PrevGCDP(1, S.CometStorm) and S.ConeofCold:CooldownDown() and not Player:PrevGCDP(2, S.ConeofCold))) then
-    if Cast(S.Freeze, nil, nil, not Target:IsSpellInRange(S.Freeze)) then return "freeze aoe_ff 6"; end
+  if Pet:IsActive() and S.Freeze:IsReady() then
+    if Freezable() and (S.GlacialSpike:InFlight() or 
+       (S.CometStorm:InFlight() and S.ConeofCold:CooldownDown() and 
+        not Player:PrevGCDP(2, S.ConeofCold))) then
+      if Cast(S.Freeze, nil, nil, not Target:IsSpellInRange(S.Freeze)) then 
+        return "freeze aoe_ff enhanced"; 
+      end
+    end
   end
   -- ice_nova,if=freezable&(prev_gcd.1.glacial_spike&remaining_winters_chill=0&debuff.winters_chill.down|prev_gcd.1.comet_storm&cooldown.cone_of_cold.remains&!prev_gcd.2.cone_of_cold)&!prev_off_gcd.freeze
-  if S.IceNova:IsCastable() and (Freezable() and (Player:PrevGCDP(1, S.GlacialSpike) and RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff) or Player:PrevGCDP(1, S.CometStorm) and S.ConeofCold:CooldownDown() and not Player:PrevGCDP(2, S.ConeofCold)) and not Player:PrevOffGCDP(1, S.Freeze)) then
-    if Cast(S.IceNova, nil, nil, not Target:IsSpellInRange(S.IceNova)) then return "ice_nova aoe_ff 8"; end
+  if S.IceNova:IsCastable() then
+    if Freezable() and (
+       (S.GlacialSpike:InFlight() and RemainingWintersChill == 0 and Target:DebuffDown(S.WintersChillDebuff)) or
+       (S.CometStorm:InFlight() and S.ConeofCold:CooldownDown() and not Player:PrevGCDP(2, S.ConeofCold))
+       ) and not Player:PrevOffGCDP(1, S.Freeze) then
+      if Cast(S.IceNova, nil, nil, not Target:IsSpellInRange(S.IceNova)) then 
+        return "ice_nova aoe_ff enhanced"; 
+      end
+    end
   end
   -- frozen_orb,if=!prev_gcd.1.cone_of_cold
-  if S.FrozenOrb:IsCastable() and (not Player:PrevGCDP(1, S.ConeofCold)) then
-    if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then return "frozen_orb aoe_ff 10"; end
+  if S.FrozenOrb:IsCastable() and not S.ConeofCold:InFlight() then
+    if Cast(S.FrozenOrb, Settings.Frost.GCDasOffGCD.FrozenOrb, nil, not Target:IsInRange(40)) then 
+      return "frozen_orb aoe_ff enhanced"; 
+    end
   end
   -- comet_storm,if=cooldown.cone_of_cold.remains>6|cooldown.cone_of_cold.ready
   if S.CometStorm:IsCastable() and (S.ConeofCold:CooldownRemains() > 6 or S.ConeofCold:CooldownUp()) then
@@ -758,6 +779,114 @@ local function STSS()
   end
 end
 
+-- Enhanced Icicles tracking with state prediction
+local function PredictIcicles()
+  -- Base count from current buff
+  local currentIcicles = Player:BuffStack(S.IciclesBuff)
+  
+  -- Add predicted Icicles from in-flight spells
+  if S.Frostbolt:InFlight() then
+    currentIcicles = math.min(5, currentIcicles + 1)
+  end
+  
+  -- Track potential Icicle consumption
+  if S.GlacialSpike:InFlight() then
+    currentIcicles = 0  -- Reset Icicles when Glacial Spike is in flight
+  end
+  
+  return currentIcicles
+end
+
+-- Enhanced cooldown coordination
+local function OptimizeCooldownUsage()
+  -- Cache common cooldown states
+  local ivCD = S.IcyVeins:CooldownRemains()
+  local foCD = S.FrozenOrb:CooldownRemains()
+  local csCD = S.CometStorm:IsAvailable() and S.CometStorm:CooldownRemains() or 999
+  local rofCD = S.RayofFrost:IsAvailable() and S.RayofFrost:CooldownRemains() or 999
+  local spCD = S.ShiftingPower:IsAvailable() and S.ShiftingPower:CooldownRemains() or 999
+  
+  -- Determine optimal cooldown usage based on fight state
+  local shouldUseIV = ivCD <= 0 and (
+    -- Use on pull
+    HL.CombatTime() < 5 or
+    -- Use for burst windows
+    (foCD <= 10 and csCD <= 10) or
+    -- Use when other CDs align
+    (spCD <= 15 and foCD <= 15)
+  )
+  
+  local shouldUseFO = foCD <= 0 and (
+    -- Don't waste during IV prep
+    not shouldUseIV or
+    -- Use with IV
+    Player:BuffUp(S.IcyVeinsBuff) or
+    -- Emergency FoF generation
+    Player:BuffDown(S.FingersofFrostBuff)
+  )
+  
+  return {
+    useIcyVeins = shouldUseIV,
+    useFrozenOrb = shouldUseFO,
+    useShiftingPower = spCD <= 0 and ivCD > 10 and foCD > 10 and csCD > 10 and rofCD > 10
+  }
+end
+
+-- Enhanced buff timing and tracking
+local function TrackBuffStates()
+  local buffStates = {
+    shouldWaitForIV = false,
+    shouldPoolForGS = false,
+    shouldHoldFlurry = false
+  }
+  
+  local wcStacks = Target:DebuffStack(S.WintersChillDebuff)
+  local wcRemains = Target:DebuffRemains(S.WintersChillDebuff)
+  
+  if S.IcyVeins:CooldownRemains() < 10 and Target:TimeToDie() > 30 then
+    buffStates.shouldWaitForIV = true
+  end
+  
+  if S.GlacialSpike:IsAvailable() and SpellStates.predictedIcicles >= 3 then
+    buffStates.shouldPoolForGS = true
+  end
+  
+  if wcStacks > 0 and wcRemains > 1 then
+    buffStates.shouldHoldFlurry = true
+  end
+  
+  return buffStates
+end
+
+-- Update main rotation functions to use enhanced tracking
+local function UpdateRotationState()
+  local buffStates = TrackBuffStates()
+  local cdStates = OptimizeCooldownUsage()
+  local currentIcicles = PredictIcicles()
+  local SpellStates = HR.Commons.Mage.SpellStates
+  
+  -- Return comprehensive state for rotation decisions
+  return {
+    buffs = buffStates,
+    cooldowns = cdStates,
+    icicles = currentIcicles,
+    -- Add fight state tracking
+    fightRemains = FightRemains,
+    shouldPool = buffStates.shouldWaitForIV or 
+                 (currentIcicles == 4 and S.GlacialSpike:IsAvailable()),
+    -- Add enhanced Winter's Chill tracking
+    wcStacks = Target:DebuffStack(S.WintersChillDebuff),
+    wcRemains = Target:DebuffRemains(S.WintersChillDebuff),
+    incomingWC = SpellStates.incomingWintersChill,
+    -- Add movement state
+    isMoving = Player:IsMoving(),
+    hasIceFloes = Player:BuffUp(S.IceFloes),
+    -- Add cleave state
+    enemiesNear = EnemiesCount8ySplash or 1,
+    shouldCleave = (EnemiesCount8ySplash or 1) > 1
+  }
+end
+
 --- ===== APL Main =====
 local function APL()
   -- Enemies Update
@@ -770,79 +899,118 @@ local function APL()
     EnemiesCount16ySplash = 1
   end
 
-  -- Check our IF status
-  -- Note: Not referenced in the current APL, but saving for potential use later
-  --Mage.IFTracker()
+  -- Update fight remains
+  BossFightRemains = HL.BossFightRemains()
+  FightRemains = BossFightRemains
+  if FightRemains == 11111 then
+    FightRemains = HL.FightRemains(Enemies16ySplash, false)
+  end
 
+  -- Update buff states
+  local buffStates = TrackBuffStates()
+  
+  -- Track movement optimization
+  if Player:IsMoving() then
+    if not (S.IceLance:IsReady() or (S.Flurry:IsReady() and Player:BuffUp(S.BrainFreezeBuff))) then
+      WCMetrics.movementEfficiency = WCMetrics.movementEfficiency - 1
+    end
+  end
+  
+  -- Check GCD
+  if Player:PrevGCDP(1, S.Frostbolt) then SpellStates.lastFrostboltCast = GetTime() end
+  if Player:PrevGCDP(1, S.Flurry) then SpellStates.lastFlurryCast = GetTime() end
+  if Player:PrevGCDP(1, S.GlacialSpike) then SpellStates.lastGlacialSpikeCast = GetTime() end
+  
+  -- Movement handling
+  if Player:IsMoving() then
+    SpellStates.movementCasts = SpellStates.movementCasts + 1
+    if S.IceLance:IsReady() then
+      if Cast(S.IceLance, nil, Settings.Frost.DisplayStyle.Movement, not Target:IsSpellInRange(S.IceLance)) then return "ice_lance movement"; end
+    end
+    if S.Flurry:IsReady() and Player:BuffUp(S.BrainFreezeBuff) then
+      if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry movement"; end
+    end
+  end
+
+  -- Check if we're in combat or have a valid target
   if Everyone.TargetIsValid() or Player:AffectingCombat() then
-    -- Calculate fight_remains
-    BossFightRemains = HL.BossFightRemains()
-    FightRemains = BossFightRemains
-    if FightRemains == 11111 then
-      FightRemains = HL.FightRemains(Enemies16ySplash, false)
-    end
-
-    -- Calculate remaining_winters_chill and icicles, as it's used in many lines
-    if AoEON() and EnemiesCount16ySplash > 1 then
-      RemainingWintersChill = CalculateWintersChill(Enemies16ySplash)
-    else
-      RemainingWintersChill = Target:DebuffStack(S.WintersChillDebuff)
-    end
-    Icicles = Player:BuffStackP(S.IciclesBuff)
-
-    -- Calculate GCDMax
-    GCDMax = Player:GCD() + 0.25
-  end
-
-  if Everyone.TargetIsValid() then
-    -- call precombat
+    -- Precombat
     if not Player:AffectingCombat() then
-      local ShouldReturn = Precombat(); if ShouldReturn then return ShouldReturn; end
+      local ShouldReturn = Precombat()
+      if ShouldReturn then return ShouldReturn end
     end
-    -- counterspell
-    local ShouldReturn = Everyone.Interrupt(S.Counterspell, Settings.CommonsDS.DisplayStyle.Interrupts, false); if ShouldReturn then return ShouldReturn; end
-    -- Force Flurry in opener
-    if S.Flurry:IsCastable() and (HL.CombatTime() < 5 and (Player:IsCasting(Bolt) or Player:PrevGCDP(1, Bolt))) then
-      if Cast(S.Flurry, Settings.Frost.GCDasOffGCD.Flurry, nil, not Target:IsSpellInRange(S.Flurry)) then return "flurry opener"; end
+
+    -- Use CDs if enabled
+    if CDsON() then
+      local ShouldReturn = CDs()
+      if ShouldReturn then return ShouldReturn end
     end
-    -- call_action_list,name=cds
-    -- Note: CDs() includes Trinkets/Items/Potion, so checking CDsON() within the function instead.
-    local ShouldReturn = CDs(); if ShouldReturn then return ShouldReturn; end
-    -- run_action_list,name=aoe_ff,if=talent.frostfire_bolt&active_enemies>=3
-    if AoEON() and (S.FrostfireBolt:IsAvailable() and EnemiesCount16ySplash >= 3) then
-      local ShouldReturn = AoEFF(); if ShouldReturn then return ShouldReturn; end
-      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for AoeFF()"; end
+
+    -- Movement
+    if Player:IsMoving() then
+      local ShouldReturn = Movement()
+      if ShouldReturn then return ShouldReturn end
     end
-    -- run_action_list,name=aoe_ss,if=active_enemies>=3
-    if AoEON() and (EnemiesCount16ySplash >= 3) then
-      local ShouldReturn = AoESS(); if ShouldReturn then return ShouldReturn; end
-      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for AoeSS()"; end
-    end
-    -- run_action_list,name=cleave_ff,if=talent.frostfire_bolt&active_enemies=2
-    if AoEON() and (S.FrostfireBolt:IsAvailable() and EnemiesCount16ySplash == 2) then
-      local ShouldReturn = CleaveFF(); if ShouldReturn then return ShouldReturn; end
-      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for CleaveFF()"; end
-    end
-    -- run_action_list,name=cleave_ss,if=active_enemies=2
-    if AoEON() and (EnemiesCount16ySplash == 2) then
-      local ShouldReturn = CleaveSS(); if ShouldReturn then return ShouldReturn; end
-      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for CleaveSS()"; end
-    end
-    -- run_action_list,name=st_ff,if=talent.frostfire_bolt
+
+    -- Main APL
     if S.FrostfireBolt:IsAvailable() then
-      local ShouldReturn = STFF(); if ShouldReturn then return ShouldReturn; end
-      if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for STFF()"; end
+      if EnemiesCount8ySplash >= 3 then
+        local ShouldReturn = AoEFF()
+        if ShouldReturn then return ShouldReturn end
+      elseif EnemiesCount8ySplash == 2 then
+        local ShouldReturn = CleaveFF()
+        if ShouldReturn then return ShouldReturn end
+      else
+        local ShouldReturn = STFF()
+        if ShouldReturn then return ShouldReturn end
+      end
+    else
+      if EnemiesCount8ySplash >= 3 then
+        local ShouldReturn = AoESS()
+        if ShouldReturn then return ShouldReturn end
+      elseif EnemiesCount8ySplash == 2 then
+        local ShouldReturn = CleaveSS()
+        if ShouldReturn then return ShouldReturn end
+      else
+        local ShouldReturn = STSS()
+        if ShouldReturn then return ShouldReturn end
+      end
     end
-    -- run_action_list,name=st_ss
-    local ShouldReturn = STSS(); if ShouldReturn then return ShouldReturn; end
-    if HR.CastAnnotated(S.Pool, false, "WAIT") then return "Pool for STSS()"; end
   end
+
+  return nil
 end
+
+-- Register additional events for enhanced tracking
+HL:RegisterForEvent(function()
+  -- Reset state when leaving combat
+  BossFightRemains = 11111
+  FightRemains = 11111
+  RemainingWintersChill = 0
+  -- Clear any predicted states
+  SpellStates.predictedIcicles = 0
+end, "PLAYER_REGEN_ENABLED")
+
+-- Track spell impacts for better state prediction
+HL:RegisterForEvent(function()
+  local timestamp, subEvent, _, sourceGUID, _, _, _, destGUID, _, _, _, spellID = CombatLogGetCurrentEventInfo()
+  if sourceGUID == Player:GUID() then
+    if subEvent == "SPELL_CAST_SUCCESS" then
+      -- Update predicted states
+      if spellID == S.Frostbolt:ID() then
+        -- Track Frostbolt casts for Icicle prediction
+        SpellStates.predictedIcicles = math.min(5, SpellStates.predictedIcicles + 1)
+      elseif spellID == S.GlacialSpike:ID() then
+        -- Reset Icicles on Glacial Spike cast
+        SpellStates.predictedIcicles = 0
+      end
+    end
+  end
+end, "COMBAT_LOG_EVENT_UNFILTERED")
 
 local function Init()
   S.WintersChillDebuff:RegisterAuraTracking()
-
-  HR.Print("Frost Mage rotation has been updated for patch 11.0.5.")
+  print("|cFF00FFFFHero Rotation:|r Frost Mage rotation has been updated for patch 11.0.5")
 end
 
 HR.SetAPL(64, APL, Init)

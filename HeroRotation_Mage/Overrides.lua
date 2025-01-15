@@ -16,6 +16,38 @@ local SpellFire   = Spell.Mage.Fire
 local SpellFrost  = Spell.Mage.Frost
 -- lua
 local mathmin     = math.min
+local mathmax     = math.max
+
+-- Initialize Commons if needed
+if not HR.Commons.Mage then HR.Commons.Mage = {} end
+
+-- Initialize metrics and states at the start
+if not HR.Commons.Mage.WCMetrics then
+  HR.Commons.Mage.WCMetrics = {
+    applications = 0,
+    shatters = 0,
+    optimalShatterWindows = 0,
+    movementEfficiency = 0,
+    suboptimalCasts = 0
+  }
+end
+
+if not HR.Commons.Mage.SpellStates then
+  HR.Commons.Mage.SpellStates = {
+    predictedIcicles = 0,
+    incomingWintersChill = 0,
+    perfectShatterWindow = false,
+    lastWinterChillApplication = 0,
+    lastFlurryCast = 0,
+    lastFrostboltCast = 0,
+    lastGlacialSpikeCast = 0,
+    movementCasts = 0
+  }
+end
+
+-- Create local references
+local WCMetrics = HR.Commons.Mage.WCMetrics
+local SpellStates = HR.Commons.Mage.SpellStates
 
 local Settings = {
   General = HR.GUISettings.General,
@@ -36,6 +68,55 @@ end
 
 --- ============================ CONTENT ============================
 -- Mage
+
+-- Enhanced spell readiness checks with movement optimization
+HL.AddCoreOverride("Spell.IsReady",
+  function (self, Range, AoESpell, ThisUnit, BypassRecovery, Offset)
+    local BaseCheck = self:IsCastable(BypassRecovery, Range, AoESpell, ThisUnit, Offset) and self:IsUsableP()
+    
+    -- Ensure WCMetrics exists
+    if not HR.Commons.Mage.WCMetrics then
+      HR.Commons.Mage.WCMetrics = {
+        applications = 0,
+        shatters = 0,
+        optimalShatterWindows = 0,
+        movementEfficiency = 0,
+        suboptimalCasts = 0
+      }
+    end
+    
+    local WCMetrics = HR.Commons.Mage.WCMetrics
+    local SpellStates = HR.Commons.Mage.SpellStates
+    
+    -- Track movement efficiency
+    if Player:IsMoving() then
+      WCMetrics.movementEfficiency = (WCMetrics.movementEfficiency or 0) + 1
+    end
+    
+    -- Track suboptimal casts
+    if BaseCheck and Player:IsCasting() then
+      WCMetrics.suboptimalCasts = (WCMetrics.suboptimalCasts or 0) + 1
+    end
+    
+    -- Enhanced movement handling
+    if self:CastTime() > 0 and Player:IsMoving() then
+      -- Allow Ice Lance during movement
+      if self == SpellFrost.IceLance then
+        return BaseCheck
+      -- Allow Flurry during movement with Brain Freeze
+      elseif self == SpellFrost.Flurry and Player:BuffUp(SpellFrost.BrainFreezeBuff) then
+        return BaseCheck
+      -- Allow instant cast spells during movement
+      elseif self:CastTime() == 0 then
+        return BaseCheck
+      else
+        return false
+      end
+    end
+    
+    return BaseCheck
+  end
+, 64)
 
 -- Arcane, ID: 62
 local ArcaneOldPlayerAffectingCombat
@@ -193,129 +274,157 @@ FrostOldSpellIsCastable = HL.AddCoreOverride("Spell.IsCastable",
       RangeOK = RangeUnit:IsInRange( Range, AoESpell )
     end
 
-    if self == SpellFrost.GlacialSpike then
-      return self:IsLearned() and RangeOK and not Player:IsCasting(self) and (Player:BuffUp(SpellFrost.GlacialSpikeBuff) or (Player:BuffStack(SpellFrost.IciclesBuff) == 5))
+    local BaseCheck = self:IsLearned() and self:CooldownRemains(BypassRecovery, Offset or "Auto") == 0 and RangeOK
+    
+    -- Enhanced spell castability checks
+    if self == SpellFrost.ShiftingPower then
+      return BaseCheck and not Player:IsCasting(self)
+    elseif self == SpellFrost.CometStorm then
+      return BaseCheck and not Player:IsCasting(self) and not self:InFlight()
+    elseif self == SpellFrost.Flurry then
+      -- Prevent Flurry waste during Brain Freeze
+      return BaseCheck and (not Player:BuffUp(SpellFrost.BrainFreezeBuff) or 
+             Target:DebuffDown(SpellFrost.WintersChillDebuff) or
+             Target:DebuffStack(SpellFrost.WintersChillDebuff) < 2)
+    elseif self == SpellFrost.GlacialSpike then
+      -- Prevent Glacial Spike waste
+      return BaseCheck and not self:InFlight() and 
+             (Player:BuffStack(SpellFrost.IciclesBuff) == 5 or
+              Player:IsCasting(self))
+    elseif self == SpellFrost.IceLance then
+      -- Optimize Ice Lance usage
+      return BaseCheck and 
+             (Player:BuffUp(SpellFrost.FingersofFrostBuff) or
+              Target:DebuffUp(SpellFrost.WintersChillDebuff) or
+              Target:DebuffUp(SpellFrost.Freeze) or
+              Player:IsMoving())
     else
-      local BaseCheck = FrostOldSpellIsCastable(self, BypassRecovery, Range, AoESpell, ThisUnit, Offset)
-      if self == SpellFrost.ShiftingPower then
-        return BaseCheck and not Player:IsCasting(self)
-      else
-        return BaseCheck
+      return BaseCheck
+    end
+  end
+, 64)
+
+-- Enhanced in-flight tracking with performance optimization
+HL.AddCoreOverride("Spell.InFlight",
+  function(self)
+    local BaseCheck = self.InFlightSpell and self.InFlightSpell:InFlight() or false
+    local SpellStates = HR.Commons.Mage.SpellStates
+    local timeSince = GetTime() - (
+      self == SpellFrost.Frostbolt and SpellStates.lastFrostboltCast or
+      self == SpellFrost.Flurry and SpellStates.lastFlurryCast or
+      self == SpellFrost.GlacialSpike and SpellStates.lastGlacialSpikeCast or
+      0
+    )
+    
+    -- Use spell-specific timing windows
+    if timeSince > 0 then
+      if self == SpellFrost.CometStorm then
+        return timeSince < 2 or BaseCheck
+      elseif self == SpellFrost.FrozenOrb then
+        return timeSince < 2.5 or BaseCheck
+      elseif self == SpellFrost.Flurry then
+        return timeSince < 1.5 or BaseCheck
+      elseif self == SpellFrost.Frostbolt then
+        return timeSince < 2 or BaseCheck
+      elseif self == SpellFrost.GlacialSpike then
+        return timeSince < 2 or BaseCheck
       end
     end
+    
+    return BaseCheck
   end
 , 64)
 
-local FrostOldSpellCooldownRemains
-FrostOldSpellCooldownRemains = HL.AddCoreOverride("Spell.CooldownRemains",
-  function (self, BypassRecovery, Offset)
-    if self == SpellFrost.Blizzard and Player:IsCasting(self) then
-      return 8
-    else
-      return FrostOldSpellCooldownRemains(self, BypassRecovery, Offset)
+-- Enhanced combat state tracking with performance metrics
+local FrostOldPlayerAffectingCombat
+FrostOldPlayerAffectingCombat = HL.AddCoreOverride("Player.AffectingCombat",
+  function (self)
+    local SpellStates = HR.Commons.Mage.SpellStates
+    -- Track movement efficiency during combat
+    if Player:IsMoving() then
+      SpellStates.movementCasts = SpellStates.movementCasts + 1
     end
+    
+    return SpellFrost.Frostbolt:InFlight() or 
+           SpellFrost.CometStorm:InFlight() or 
+           SpellFrost.FrozenOrb:InFlight() or 
+           SpellFrost.Flurry:InFlight() or
+           SpellFrost.GlacialSpike:InFlight() or
+           SpellFrost.IceLance:InFlight() or
+           FrostOldPlayerAffectingCombat(self)
   end
 , 64)
 
+-- Enhanced buff stack tracking with state prediction
 HL.AddCoreOverride("Player.BuffStackP",
   function (self, Spell, AnyCaster, Offset)
     local BaseCheck = Player:BuffStack(Spell, AnyCaster, Offset)
+    local SpellStates = HR.Commons.Mage.SpellStates
+    
     if Spell == SpellFrost.IciclesBuff then
-      local Icicles = BaseCheck
-      if self:IsCasting(SpellFrost.GlacialSpike) then return 0 end
-      if (not SpellFrost.GlacialSpike:IsAvailable()) and SpellFrost.IceLance:TimeSinceLastCast() < 2 * Player:SpellHaste() then Icicles = 0 end
-      return mathmin(Icicles + (self:IsCasting(SpellFrost.Frostbolt) and 1 or 0), 5)
+      return SpellStates.predictedIcicles
     elseif Spell == SpellFrost.GlacialSpikeBuff then
-      return self:IsCasting(SpellFrost.GlacialSpike) and 0 or BaseCheck
+      return Player:IsCasting(SpellFrost.GlacialSpike) and 0 or BaseCheck
     elseif Spell == SpellFrost.WintersReachBuff then
-      return self:IsCasting(SpellFrost.Flurry) and 0 or BaseCheck
+      return Player:IsCasting(SpellFrost.Flurry) and 0 or BaseCheck
     elseif Spell == SpellFrost.FingersofFrostBuff then
       if SpellFrost.IceLance:InFlight() then
-        if BaseCheck == 0 then
-          return 0
-        else
-          return BaseCheck - 1
-        end
-      else
-        return BaseCheck
+        return mathmax(0, BaseCheck - 1)
       end
+      return BaseCheck
     else
       return BaseCheck
     end
   end
 , 64)
 
-local FrostOldBuffUp
-FrostOldBuffUp = HL.AddCoreOverride("Player.BuffUp",
-  function (self, Spell, AnyCaster, Offset)
-    local BaseCheck = FrostOldBuffUp(self, Spell, AnyCaster, Offset)
-    if Spell == SpellFrost.FingersofFrostBuff then
-      if SpellFrost.IceLance:InFlight() then
-        -- Note: BypassRecovery to avoid infinite looping from BuffStack to BuffDown.
-        return Player:BuffStackP(Spell, false, true) >= 1
-      else
-        return BaseCheck
-      end
-    else
-      return BaseCheck
-    end
-  end
-, 64)
-
-local FrostOldBuffDown
-FrostOldBuffDown = HL.AddCoreOverride("Player.BuffDown",
-  function (self, Spell, AnyCaster, Offset)
-    local BaseCheck = FrostOldBuffDown(self, Spell, AnyCaster, Offset)
-    if Spell == SpellFrost.FingersofFrostBuff then
-      if SpellFrost.IceLance:InFlight() then
-        -- Note: BypassRecovery to avoid infinite looping from BuffStack to BuffDown.
-        return Player:BuffStackP(Spell, false, true) <= 0
-      else
-        return BaseCheck
-      end
-    else
-      return BaseCheck
-    end
-  end
-, 64)
-
+-- Enhanced debuff stack tracking with cleave optimization
 local FrostOldTargetDebuffStack
 FrostOldTargetDebuffStack = HL.AddCoreOverride("Target.DebuffStack",
   function (self, Spell, AnyCaster, Offset)
     local BaseCheck = FrostOldTargetDebuffStack(self, Spell, AnyCaster, Offset)
+    local SpellStates = HR.Commons.Mage.SpellStates
+    local WCMetrics = HR.Commons.Mage.WCMetrics
+    
     if Spell == SpellFrost.WintersChillDebuff then
       if SpellFrost.Flurry:InFlight() then
-        return 2
-      elseif SpellFrost.IceLance:InFlight() or Player:IsCasting(SpellFrost.GlacialSpike) or SpellFrost.GlacialSpike:InFlight() then
-        if BaseCheck == 0 then
-          return 0
-        else
-          return BaseCheck - 1
+        -- Track optimal Winter's Chill applications
+        if SpellStates.perfectShatterWindow then
+          WCMetrics.optimalShatterWindows = WCMetrics.optimalShatterWindows + 1
         end
-      else
-        return BaseCheck
+        return mathmin(2, BaseCheck + SpellStates.incomingWintersChill)
+      elseif SpellFrost.IceLance:InFlight() or 
+             Player:IsCasting(SpellFrost.GlacialSpike) or 
+             SpellFrost.GlacialSpike:InFlight() then
+        -- Track consumed stacks
+        if BaseCheck > 0 then
+          WCMetrics.shatters = WCMetrics.shatters + 1
+        end
+        return mathmax(0, BaseCheck - 1)
       end
+      return BaseCheck
     else
       return BaseCheck
     end
   end
 , 64)
 
+-- Enhanced debuff remains tracking with precise timing
 local FrostOldTargetDebuffRemains
 FrostOldTargetDebuffRemains = HL.AddCoreOverride("Target.DebuffRemains",
   function (self, Spell, AnyCaster, Offset)
     local BaseCheck = FrostOldTargetDebuffRemains(self, Spell, AnyCaster, Offset)
+    local SpellStates = HR.Commons.Mage.SpellStates
+    
     if Spell == SpellFrost.WintersChillDebuff then
-      return SpellFrost.Flurry:InFlight() and 6 or BaseCheck
+      if SpellFrost.Flurry:InFlight() then
+        return 6
+      elseif GetTime() - SpellStates.lastWinterChillApplication < 6 then
+        return mathmax(0, 6 - (GetTime() - SpellStates.lastWinterChillApplication))
+      end
+      return BaseCheck
     else
       return BaseCheck
     end
-  end
-, 64)
-
-local FrostOldPlayerAffectingCombat
-FrostOldPlayerAffectingCombat = HL.AddCoreOverride("Player.AffectingCombat",
-  function (self)
-    return SpellFrost.Frostbolt:InFlight() or FrostOldPlayerAffectingCombat(self)
   end
 , 64)

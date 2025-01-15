@@ -1,110 +1,71 @@
 --- ============================ HEADER ============================
---- ======= LOCALIZE =======
--- Addon
+-- Import all required libraries and initialize local variables
 local addonName, addonTable = ...
--- HeroLib
+local DBC = HeroDBC.DBC
 local HL = HeroLib
 local Cache = HeroCache
-local HR = HeroRotation
 local Unit = HL.Unit
 local Player = Unit.Player
 local Target = Unit.Target
 local Spell = HL.Spell
 local Item = HL.Item
-local Mage = HR.Commons.Mage
--- Lua
-local select = select
--- WoW API
-local GetTime = GetTime
-local C_Timer = C_Timer
+local HR = HeroRotation
+local Cast = HR.Cast
+local AoEON = HR.AoEON
+local CDsON = HR.CDsON
+local mathmin = math.min
+local mathmax = math.max
 
---- ============================ CONTENT ============================
---- ======= NON-COMBATLOG =======
+-- Import Frost Mage spells
+local S = Spell.Mage.Frost
 
+-- Initialize metrics for Winter's Chill tracking
+local WCMetrics = {
+  applications = 0,
+  shatters = 0,
+  wastedProcs = 0,
+  perfectShatterCombos = 0,
+  missedShatterOpportunities = 0,
+  optimalShatterWindows = 0,
+  cleaveEfficiency = 0,
+  movementEfficiency = 0
+}
 
---- ======= COMBATLOG =======
-  --- Combat Log Arguments
-    ------- Base -------
-      --     1        2         3           4           5           6              7             8         9        10           11
-      -- TimeStamp, Event, HideCaster, SourceGUID, SourceName, SourceFlags, SourceRaidFlags, DestGUID, DestName, DestFlags, DestRaidFlags
+-- Track in-flight spells that can trigger effects
+local InFlightSpells = {
+  [S.Frostbolt:ID()] = true,      -- Frostbolt
+  [228597] = true,                 -- Frostbolt Impact
+  [S.CometStorm:ID()] = true,      -- Comet Storm
+  [153596] = true,                 -- Comet Storm Impact
+  [S.Flurry:ID()] = true,          -- Flurry
+  [228354] = true,                 -- Flurry Impact
+  [S.GlacialSpike:ID()] = true,    -- Glacial Spike
+  [228600] = true,                 -- Glacial Spike Impact
+  [S.IceLance:ID()] = true,        -- Ice Lance
+  [228598] = true,                 -- Ice Lance Impact
+  [S.FrostfireBolt:ID()] = true,   -- Frostfire Bolt
+  [S.FrozenOrb:ID()] = true,       -- Frozen Orb
+  [84721] = true                   -- Frozen Orb Impact
+}
 
-    ------- Prefixes -------
-      --- SWING
-      -- N/A
+-- Track spell states for optimization
+local SpellStates = {
+  lastFrostboltCast = 0,
+  lastFlurryCast = 0,
+  lastGlacialSpikeCast = 0,
+  predictedIcicles = 0,
+  lastWinterChillApplication = 0,
+  incomingWintersChill = 0,
+  lastShatterCombo = 0,
+  lastFrozenState = 0,
+  perfectShatterWindow = false,
+  lastCleaveTarget = nil,
+  missedShatterWindows = 0,
+  suboptimalCasts = 0,
+  movementCasts = 0
+}
 
-      --- SPELL & SPELL_PACIODIC
-      --    12        13          14
-      -- SpellID, SpellName, SpellSchool
-
-    ------- Suffixes -------
-      --- _CAST_START & _CAST_SUCCESS & _SUMMON & _RESURRECT
-      -- N/A
-
-      --- _CAST_FAILED
-      --     15
-      -- FailedType
-
-      --- _AURA_APPLIED & _AURA_REMOVED & _AURA_REFRESH
-      --    15
-      -- AuraType
-
-      --- _AURA_APPLIED_DOSE
-      --    15       16
-      -- AuraType, Charges
-
-      --- _INTERRUPT
-      --      15            16             17
-      -- ExtraSpellID, ExtraSpellName, ExtraSchool
-
-      --- _HEAL
-      --   15         16         17        18
-      -- Amount, Overhealing, Absorbed, Critical
-
-      --- _DAMAGE
-      --   15       16       17       18        19       20        21        22        23
-      -- Amount, Overkill, School, Resisted, Blocked, Absorbed, Critical, Glancing, Crushing
-
-      --- _MISSED
-      --    15        16           17
-      -- MissType, IsOffHand, AmountMissed
-
-    ------- Special -------
-      --- UNIT_DIED, UNIT_DESTROYED
-      -- N/A
-
-  --- End Combat Log Arguments
-
---------------------------
--------- Arcane ----------
---------------------------
-
-
---------------------------
--------- Frost -----------
---------------------------
-
--- Note: We don't currently use FrozenOrbGroundAoeRemains, so let's comment this out.
--- Keeping it around, just in case we need it again in the future.
---[[local FrozenOrbFirstHit = true
-local FrozenOrbHitTime = 0
-
-HL:RegisterForSelfCombatEvent(function(...)
-  local spellID = select(12, ...)
-  if spellID == 84721 and FrozenOrbFirstHit then
-    FrozenOrbFirstHit = false
-    FrozenOrbHitTime = GetTime()
-    C_Timer.After(10, function()
-      FrozenOrbFirstHit = true
-      FrozenOrbHitTime = 0
-    end)
-  end
-end, "SPELL_DAMAGE")
-
-function Player:FrozenOrbGroundAoeRemains()
-  return math.max((FrozenOrbHitTime - (GetTime() - 10) - HL.RecoveryTimer()), 0)
-end]]
-
--- Register Combat Log Event Handler
+-- Register Combat Log Event Handler with enhanced tracking
 HL:RegisterForEvent(function(...)
   local timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellID, spellName = ...
   
@@ -112,21 +73,127 @@ HL:RegisterForEvent(function(...)
   if sourceGUID ~= Player:GUID() then return end
   
   if subevent == "SPELL_CAST_SUCCESS" then
-    -- Track Frostbolt casts for Icicles
-    if spellID == 116 then -- Frostbolt
-      -- Trigger Icicles optimization check
-      if OptimizeIciclesUsage then
-        if OptimizeIciclesUsage() then
-          VarNextCast = "glacial_spike"
+    -- Track spell casts for state prediction
+    if spellID == S.Frostbolt:ID() then
+      SpellStates.lastFrostboltCast = timestamp
+      SpellStates.predictedIcicles = mathmin(5, SpellStates.predictedIcicles + 1)
+      -- Track cast efficiency
+      if Player:IsMoving() then 
+        SpellStates.movementCasts = SpellStates.movementCasts + 1 
+      end
+    elseif spellID == S.Flurry:ID() then
+      SpellStates.lastFlurryCast = timestamp
+      SpellStates.incomingWintersChill = 2
+      -- Check for optimal Shatter timing
+      if Player:PrevGCDP(1, S.Frostbolt) or Player:PrevGCDP(1, S.GlacialSpike) then
+        SpellStates.perfectShatterWindow = true
+        WCMetrics.optimalShatterWindows = WCMetrics.optimalShatterWindows + 1
+      else
+        SpellStates.suboptimalCasts = SpellStates.suboptimalCasts + 1
+      end
+    elseif spellID == S.GlacialSpike:ID() then
+      SpellStates.lastGlacialSpikeCast = timestamp
+      SpellStates.predictedIcicles = 0
+      -- Track Glacial Spike efficiency
+      if not SpellStates.perfectShatterWindow then
+        SpellStates.suboptimalCasts = SpellStates.suboptimalCasts + 1
+      end
+    end
+  elseif subevent == "SPELL_DAMAGE" then
+    -- Track spell impacts for in-flight effects
+    if InFlightSpells[spellID] then
+      -- Update metrics based on the spell that landed
+      if spellID == 228354 then -- Flurry Impact
+        -- Check if we shattered properly
+        if Target:DebuffStack(S.WintersChillDebuff) > 0 then
+          WCMetrics.shatters = WCMetrics.shatters + 1
+          -- Check for perfect shatter combos
+          if SpellStates.perfectShatterWindow then
+            WCMetrics.perfectShatterCombos = WCMetrics.perfectShatterCombos + 1
+            SpellStates.perfectShatterWindow = false
+          end
         end
+      end
+      -- Track cleave efficiency
+      if destGUID ~= SpellStates.lastCleaveTarget then
+        WCMetrics.cleaveEfficiency = WCMetrics.cleaveEfficiency + 1
+        SpellStates.lastCleaveTarget = destGUID
       end
     end
   elseif subevent == "SPELL_AURA_APPLIED" then
     -- Track Winter's Chill applications
-    if spellID == 228358 then -- Winter's Chill
-      if WCMetrics then
-        WCMetrics.applications = WCMetrics.applications + 1
+    if spellID == S.WintersChillDebuff:ID() then
+      SpellStates.lastWinterChillApplication = timestamp
+      WCMetrics.applications = WCMetrics.applications + 1
+      -- Check for potential waste
+      if Target:DebuffStack(S.WintersChillDebuff) > 2 then
+        WCMetrics.wastedProcs = WCMetrics.wastedProcs + 1
+      end
+    elseif spellID == S.FrozenDebuff:ID() then
+      SpellStates.lastFrozenState = timestamp
+    end
+  elseif subevent == "SPELL_AURA_REMOVED" then
+    -- Track Winter's Chill removals
+    if spellID == S.WintersChillDebuff:ID() then
+      -- Check for missed shatter opportunities
+      if Target:DebuffStack(S.WintersChillDebuff) > 0 then
+        WCMetrics.missedShatterOpportunities = WCMetrics.missedShatterOpportunities + 1
+        SpellStates.missedShatterWindows = SpellStates.missedShatterWindows + 1
       end
     end
   end
 end, "COMBAT_LOG_EVENT_UNFILTERED")
+
+-- Reset metrics and states when leaving combat with enhanced cleanup
+HL:RegisterForEvent(function()
+  WCMetrics = {
+    applications = 0,
+    shatters = 0,
+    wastedProcs = 0,
+    perfectShatterCombos = 0,
+    missedShatterOpportunities = 0,
+    optimalShatterWindows = 0,
+    cleaveEfficiency = 0,
+    movementEfficiency = 0
+  }
+  
+  SpellStates = {
+    lastFrostboltCast = 0,
+    lastFlurryCast = 0,
+    lastGlacialSpikeCast = 0,
+    predictedIcicles = 0,
+    lastWinterChillApplication = 0,
+    incomingWintersChill = 0,
+    lastShatterCombo = 0,
+    lastFrozenState = 0,
+    perfectShatterWindow = false,
+    lastCleaveTarget = nil,
+    missedShatterWindows = 0,
+    suboptimalCasts = 0,
+    movementCasts = 0
+  }
+end, "PLAYER_REGEN_ENABLED")
+
+-- Track player state changes with enhanced spec handling
+HL:RegisterForEvent(function()
+  -- Reset predicted states on spec change
+  SpellStates.predictedIcicles = 0
+  SpellStates.incomingWintersChill = 0
+  SpellStates.perfectShatterWindow = false
+  -- Reset performance metrics
+  SpellStates.missedShatterWindows = 0
+  SpellStates.suboptimalCasts = 0
+  SpellStates.movementCasts = 0
+end, "PLAYER_SPECIALIZATION_CHANGED")
+
+-- Add movement efficiency tracking
+HL:RegisterForEvent(function()
+  if Player:IsMoving() then
+    WCMetrics.movementEfficiency = WCMetrics.movementEfficiency + 1
+  end
+end, "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING")
+
+-- Export metrics and states for use in rotation
+HR.Commons.Mage = HR.Commons.Mage or {}
+HR.Commons.Mage.WCMetrics = WCMetrics
+HR.Commons.Mage.SpellStates = SpellStates
