@@ -151,7 +151,23 @@ local function Precombat()
   -- augmentation
   -- arcane_intellect
   if S.ArcaneIntellect:IsCastable() and Everyone.GroupBuffMissing(S.ArcaneIntellect) then
-    if Cast(S.ArcaneIntellect, Settings.CommonsOGCD.GCDasOffGCD.ArcaneIntellect) then return "arcane_intellect precombat 2"; end
+    -- Check if any party/raid members are in range and need the buff
+    local groupSize = IsInRaid() and GetNumGroupMembers() or IsInGroup() and GetNumGroupMembers() or 1
+    local needsBuff = false
+    
+    if groupSize > 1 then
+      for i = 1, groupSize do
+        local unit = IsInRaid() and "raid"..i or "party"..i
+        if UnitExists(unit) and not UnitIsDeadOrGhost(unit) and IsSpellInRange(S.ArcaneIntellect:Name(), unit) == 1 and not UnitAura(unit, S.ArcaneIntellect:Name()) then
+          needsBuff = true
+          break
+        end
+      end
+    end
+    
+    if groupSize == 1 or needsBuff then
+      if Cast(S.ArcaneIntellect, Settings.CommonsOGCD.GCDasOffGCD.ArcaneIntellect) then return "arcane_intellect precombat 2"; end
+    end
   end
   -- snapshot_stats
   -- variable,name=boltspam,value=talent.splinterstorm&talent.cold_front&talent.slick_ice&talent.deaths_chill&talent.frozen_touch|talent.frostfire_bolt&talent.deep_shatter&talent.slick_ice&talent.deaths_chill
